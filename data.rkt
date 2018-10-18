@@ -17,7 +17,7 @@
 ; utils
 (define BitVec->bits
   (λ (bv)
-    (let ([v (BitVec-width bv)])
+    (let ([v (BitVec-value bv)])
       (for/list ([p (range (BitVec-width bv))])
         (if (bitwise-bit-set? v p) 1 0)))))
 
