@@ -2,6 +2,8 @@
 
 (require racket/struct)
 
+(provide (all-defined-out))
+
 ; `value` is a positive integer whose two's complement
 ; is the bv to represent.
 ; it simplifies arithmetic
@@ -30,6 +32,20 @@
           [d (expt 2 (BitVec-width bv1))])
       (mkBV (BitVec-width bv1)
             (modulo r d)))))
+
+(define bv-pred
+  (λ (op bv1 bv2)
+    (if (= (BitVec-width bv1)
+           (BitVec-width bv2))
+        (op (BitVec-value bv1)
+            (BitVec-value bv2))
+        (error "not the same bit-width"))))
+
+(define bv=
+  ((curry bv-pred) =))
+
+(define bv<
+  ((curry bv-pred) <))
 
 (define eval/bvadd
   ((curry eval/arith/binop) +))
@@ -68,6 +84,11 @@
 
 (define eval/bvor
   ((curry eval/bitwise/binop bitwise-ior)))
+
+(define eval/bvshl
+  (λ (bv1 bv2)
+    (let ([])
+    (mkBV (BitVec-width bv1))))
 
 ; bitwise not
 (define eval/bvnot
