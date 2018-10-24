@@ -23,6 +23,9 @@
       (for/list ([p (range (BitVec-width bv))])
         (if (bitwise-bit-set? v p) 1 0)))))
 
+(define eval/id
+  (curry BitVec-value))
+
 ; arithmetic operations
 ; binary
 (define eval/arith/binop
@@ -59,7 +62,7 @@
 (define eval/bvudiv
   ((curry eval/arith/binop) /))
 
-(define eval/urem
+(define eval/bvurem
   (λ (bv1 bv2)
     (error "not implemented!")))
 
@@ -87,8 +90,17 @@
 
 (define eval/bvshl
   (λ (bv1 bv2)
-    (let ([])
-    (mkBV (BitVec-width bv1))))
+    (let ([w (BitVec-width bv1)])
+      (mkBV w (modulo
+               (arithmetic-shift (BitVec-value bv1)
+                                 (BitVec-value bv2))
+               (expt 2 w))))))
+
+(define eval/bvlshr
+  (λ (bv1 bv2)
+    (mkBV (BitVec-width bv1)
+          (arithmetic-shift (BitVec-value bv1)
+                            (- (BitVec-value bv2))))))
 
 ; bitwise not
 (define eval/bvnot
