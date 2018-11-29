@@ -1,7 +1,8 @@
 #lang racket
 
-(require "parser.rkt")
 (require "data.rkt")
+
+(provide (all-defined-out))
 
 (define get-bv
   (λ (assignment sym)
