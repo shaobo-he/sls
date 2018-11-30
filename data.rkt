@@ -116,3 +116,5 @@
       (for/list ([i (in-range w)])
         (let ([mask (arithmetic-shift 1 i)])
           (mkBV w (bitwise-xor mask v)))))))
+
+;(define )

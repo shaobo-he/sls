@@ -8,6 +8,10 @@
   (λ (assignment sym)
     (hash-ref assignment (symbol->string sym))))
 
+(define update/Assignment
+  (λ (assignment sym val)
+    (hash-set assignment (symbol->string sym) val)))
+
 
 ; the evaluator
 (define eval

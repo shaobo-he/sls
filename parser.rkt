@@ -95,6 +95,6 @@
                                      (if (hash-has-key? assignment (symbol->string F))
                                          `(,F)
                                          '()))]))])
-      (list->set (get/vars/do F)))))
+      (set->list (list->set (get/vars/do F))))))
 
 (define test-formula (unnest (formula->nnf (get-formula (string->sexp test-script)))))
