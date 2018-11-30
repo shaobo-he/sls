@@ -1,6 +1,19 @@
 #lang racket
 
+(require racket/set)
+
 (provide (all-defined-out))
+
+(define test-script
+  "
+   (declare-const x\n
+   (_ BitVec 8))\n
+   (declare-const y (_ BitVec 8))\n
+   (assert (or (bvult (bvadd x (bvmul (_ bv8 2) y)) (_ bv8 4))\n
+               (= (bvadd x (bvmul (_ bv8 2) y)) (_ bv8 4))))\n
+   (assert (or (bvult y (_ bv8 2))\n
+               (= y (_ bv8 2))))\n
+   (assert (not (bvult (bvadd x y) (_ bv8 1))))")
 
 (define string->sexp
   (λ (str)
@@ -65,3 +78,23 @@
     [`(,op ,fs ...)
      `(,op ,@(map unnest fs))]
     [_ f]))
+
+(define get/assertions
+  (λ (F)
+    (match F
+      [`(∧ ,as ...) (filter list? as)]
+      [_ (error "not a valid SMT formula")])))
+
+(define get/vars
+  (λ (F assignment)
+    (letrec ([get/vars/do (λ (F)
+                            (match F
+                              [`(,op ,fs ...) (apply append (map (λ (f) (get/vars/do f)) fs))]
+                              [_ (if (number? F)
+                                     '()
+                                     (if (hash-has-key? assignment (symbol->string F))
+                                         `(,F)
+                                         '()))]))])
+      (list->set (get/vars/do F)))))
+
+(define test-formula (unnest (formula->nnf (get-formula (string->sexp test-script)))))

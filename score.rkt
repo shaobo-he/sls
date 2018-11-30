@@ -23,6 +23,10 @@
                         [`(bvnot ,op) (eval/bvnot (eval^ op))]
                         [`(bvand ,op1 ,op2) (eval/bvand (eval^ op1) (eval^ op2))]
                         [`(bvor ,op1 ,op2) (eval/bvor (eval^ op1) (eval^ op2))]
+                        [`(_ ,op1, op2) (mkBV (string->number
+                                               (substring
+                                                (symbol->string op1)
+                                                (string-length "bv"))) op2)]
                         [`(,op ...) (error "unsupported operations")]
                         [else (get-bv assignment be)]))])
       (eval^ be))))

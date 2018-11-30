@@ -108,3 +108,11 @@
     (let ([v (BitVec-value bv)]
           [w (BitVec-width bv)])
       (mkBV w (- (- (expt 2 w) 1) v)))))
+
+(define get/1-exchange
+  (λ (bv)
+    (let ([v (BitVec-value bv)]
+          [w (BitVec-width bv)])
+      (for/list ([i (in-range w)])
+        (let ([mask (arithmetic-shift 1 i)])
+          (mkBV w (bitwise-xor mask v)))))))
