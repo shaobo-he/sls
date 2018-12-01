@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/set)
+(require racket/file)
 
 (provide (all-defined-out))
 
@@ -9,11 +10,11 @@
    (declare-const x\n
    (_ BitVec 8))\n
    (declare-const y (_ BitVec 8))\n
-   (assert (or (bvult (bvadd x (bvmul (_ bv8 2) y)) (_ bv8 4))\n
-               (= (bvadd x (bvmul (_ bv8 2) y)) (_ bv8 4))))\n
-   (assert (or (bvult y (_ bv8 2))\n
-               (= y (_ bv8 2))))\n
-   (assert (not (bvult (bvadd x y) (_ bv8 1))))")
+   (assert (or (bvult (bvadd x (bvmul (_ bv2 8) y)) (_ bv4 8))\n
+               (= (bvadd x (bvmul (_ bv2 8) y)) (_ bv4 8))))\n
+   (assert (or (bvult y (_ bv2 8))\n
+               (= y (_ bv2 8))))\n
+   (assert (not (bvult (bvadd x y) (_ bv1 8))))")
 
 (define string->sexp
   (λ (str)
@@ -27,6 +28,10 @@
                   [else (cons c (parse-string^ fd))])))])
         (parse-string^ fd)))))
 
+(define file->sexp
+  (λ (fn)
+    (string->sexp (file->string fn))))
+
 (define transform-expr
   (λ (sexp)
     (match sexp
@@ -34,17 +39,27 @@
       [`(and, exprs ...) `(∧ ,@(map transform-expr exprs))]
       [`(or, exprs ...) `(∨ ,@(map transform-expr exprs))]
       [`(implies, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
+      [`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
       [`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]      
       [else sexp])))
 
 (define get-formula
   (λ (cmds)
-    (letrec ([get-expr
+    (let ([get-expr
               (λ (cmd result)
                 (match cmd
                   [`(assert, expr) (list '∧ (transform-expr expr) result)]
                   [else result]))])
       (foldl get-expr '⊤ cmds))))
+
+(define get-vars
+  (λ (cmds)
+    (let ([get-var
+           (λ (cmd result)
+             (match cmd
+               [`(declare-const ,id (_ BitVec ,size)) (cons (cons id size) result)]
+               [else result]))])
+      (foldl get-var '() cmds))))
 
 (define atom?
   (λ (sexp)
@@ -98,3 +113,6 @@
       (set->list (list->set (get/vars/do F))))))
 
 (define test-formula (unnest (formula->nnf (get-formula (string->sexp test-script)))))
+(define test-vars (get-vars (string->sexp test-script)))
+(define kenken-formula (unnest (formula->nnf (get-formula (file->sexp "test/test3.smt2")))))
+(define kenken-vars (get-vars (file->sexp "test/test3.smt2")))

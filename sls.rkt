@@ -23,14 +23,16 @@
             (λ (candVars)
               (let ([neighbors (get/neighbors candVars)])
                 (if (coin-flip wp)
-                    (list-ref neighbors (random (length neighbors)))
-                    (argmax
+                    (cons #t (list-ref neighbors (random (length neighbors))))
+                    (cons #f (argmax
                      (λ (a) (score c2 a F))
-                     neighbors))))])
+                     neighbors)))))])
       (let ([local-opt (select/Move (get/vars candAssertion assignment))])
-        (if (> (score c2 local-opt F) currScore)
-            (cons #t local-opt)
-            (cons #f local-opt))))))
+        (if (car local-opt)
+            (cons #t (cdr local-opt))
+        (if (> (score c2 (cdr local-opt) F) currScore)
+            (cons #t (cdr local-opt))
+            (cons #f (cdr local-opt))))))))
 
 (define coin-flip
   (λ (p)
@@ -54,11 +56,16 @@
   (λ (F assignment c2)
     (= (score c2 assignment F) 1.0)))
 
-#|
-(define initialize/assignment
-  (λ (Vars)
-    ))
+(define update/Assignment
+  (λ (assignment sym val)
+    (hash-set assignment (symbol->string sym) val)))
 
+(define initialize/Assignment
+  (λ (Vars)
+    (foldl (λ (Var h) (hash-set h (symbol->string (car Var)) (mkBV (cdr Var) 0)))
+           (make-immutable-hash)
+           Vars)))
+#|
 (define initialize/selected
   (λ (F)
     (map (λ (x) 0) F)))
@@ -80,25 +87,30 @@
 |#
 
 (define randomAssign
-  (λ (assign i)
+  (λ (Vars assign i)
     (begin
-      (displayln assign)
-      (displayln i)
-      (error "local maxima reached!"))))
+      ;(displayln "local maxima reached!")
+      ;(displayln assign)
+      ;(displayln i)
+      (foldl (λ (Var h) (hash-set h (symbol->string (car Var)) (random-bv (cdr Var))))
+           (make-immutable-hash)
+           Vars))))
 
 (define sls
-  (λ (F c2 initAssign maxSteps wp)
+  (λ (Vars F c2 maxSteps wp)
     (letrec ([sls/do
               (λ (i assignment)
                 (if (>= i maxSteps)
                     'unknown
                     (if (isSat? F assignment c2)
-                        assignment
+                        (begin
+                          (displayln i)
+                        assignment)
                         (let ([newAssign (select/Candidates F assignment wp c2)])
                           (if (car newAssign)
                               (sls/do (+ i 1) (cdr newAssign))
-                              (sls/do (+ i 1) (randomAssign (cdr newAssign) i))
+                              (sls/do (+ i 1) (randomAssign Vars (cdr newAssign) i))
                               )))))])
-      (sls/do 0 initAssign))))
+      (sls/do 0 (initialize/Assignment Vars)))))
 
 (define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))

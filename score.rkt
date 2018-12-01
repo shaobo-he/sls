@@ -8,11 +8,6 @@
   (λ (assignment sym)
     (hash-ref assignment (symbol->string sym))))
 
-(define update/Assignment
-  (λ (assignment sym val)
-    (hash-set assignment (symbol->string sym) val)))
-
-
 ; the evaluator
 (define eval
   (λ (be assignment)
@@ -27,10 +22,10 @@
                         [`(bvnot ,op) (eval/bvnot (eval^ op))]
                         [`(bvand ,op1 ,op2) (eval/bvand (eval^ op1) (eval^ op2))]
                         [`(bvor ,op1 ,op2) (eval/bvor (eval^ op1) (eval^ op2))]
-                        [`(_ ,op1, op2) (mkBV (string->number
+                        [`(_ ,op1, op2) (mkBV op2 (string->number
                                                (substring
                                                 (symbol->string op1)
-                                                (string-length "bv"))) op2)]
+                                                (string-length "bv"))))]
                         [`(,op ...) (error "unsupported operations")]
                         [else (get-bv assignment be)]))])
       (eval^ be))))

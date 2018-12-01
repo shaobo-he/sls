@@ -117,4 +117,6 @@
         (let ([mask (arithmetic-shift 1 i)])
           (mkBV w (bitwise-xor mask v)))))))
 
-;(define )
+(define random-bv
+  (λ (w)
+    (mkBV w (random (expt 2 w)))))
