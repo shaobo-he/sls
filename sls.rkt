@@ -17,7 +17,7 @@
                       (λ (candVar)
                         (let ([bv (get-bv assignment candVar)])
                           (map ((curry update/Assignment) assignment candVar)
-                               (get/1-exchange bv))))
+                               (get/extended-neighbors bv))))
                       candVars)))]
            [select/Move
             (λ (candVars)
@@ -33,12 +33,6 @@
         (if (> (score c2 (cdr local-opt) F) currScore)
             (cons #t (cdr local-opt))
             (cons #f (cdr local-opt))))))))
-
-(define coin-flip
-  (λ (p)
-    (if (< (random) p)
-        #t
-        #f)))
 
 (define select/Assertion
   ;;(λ (F assignment selected moves c2)
@@ -90,11 +84,13 @@
   (λ (Vars assign i)
     (begin
       ;(displayln "local maxima reached!")
-      ;(displayln assign)
+      ;(displayln assign)     
       ;(displayln i)
       (foldl (λ (Var h) (hash-set h (symbol->string (car Var)) (random-bv (cdr Var))))
            (make-immutable-hash)
            Vars))))
+      ;;(let ([c (list-ref Vars (random (length Vars)))])
+      ;;  (hash-set assign (symbol->string (car c)) (random-bv (cdr c)))))))
 
 (define sls
   (λ (Vars F c2 maxSteps wp)

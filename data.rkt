@@ -117,6 +117,25 @@
         (let ([mask (arithmetic-shift 1 i)])
           (mkBV w (bitwise-xor mask v)))))))
 
+(define get/±1
+  (λ (bv)
+    (let ([w (BitVec-width bv)])
+      (for/list ([f `(,eval/bvadd ,eval/bvsub)])
+        (f bv (mkBV w 1))))))
+
+(define get/extended-neighbors
+  (λ (bv)
+    (append (get/1-exchange bv) (get/±1 bv))))
+    ;(get/1-exchange bv)))
+
+(define coin-flip
+  (λ (p)
+    (if (< (random) p)
+        #t
+        #f)))
+
 (define random-bv
   (λ (w)
-    (mkBV w (random (expt 2 w)))))
+    (if (coin-flip 0.5)
+        (mkBV w (random (expt 2 (- w 1))))
+        (mkBV w (random (expt 2 w))))))
