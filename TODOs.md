@@ -2,5 +2,5 @@
 1. FP score function
 2. FP evaluator
 
-## non-Urgent
+## Non-urgent
 1. SLS heuristics in the original paper
