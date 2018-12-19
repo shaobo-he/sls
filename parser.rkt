@@ -39,9 +39,51 @@
       [`(and, exprs ...) `(∧ ,@(map transform-expr exprs))]
       [`(or, exprs ...) `(∨ ,@(map transform-expr exprs))]
       [`(implies, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
-      [`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
+      ;[`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
       [`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]      
       [else sexp])))
+
+(define remove-let-bindings
+  (λ (sexp)
+    (letrec ([do (λ (sexp env)
+                   (match sexp
+                     [`(let (,bindings ...) ,body)
+                      (let ([new-env
+                             (foldl
+                              (λ (binding env)
+                                (extend-env (car binding) (do (car (cdr binding)) env) env))
+                              env
+                              bindings)])
+                        (do body new-env))]
+                     [`(, exprs ...) (map (λ (exp) (do exp env)) exprs)]
+                     [_ (if (symbol? sexp) (lookup sexp env) sexp)])
+                   )]
+             [lookup (λ (sym env)
+                       (cond
+                         [(null? env) sym]
+                         [else (let ([binding (car env)])
+                                 (if (equal? (car binding) sym)
+                                     (cdr binding)
+                                     (lookup sym (cdr env))))]))]
+             [extend-env (λ (sym val env) (cons (cons sym val) env))])
+      (do sexp '()))))
+
+(define let-script "(assert
+ (not (fp.isNaN ((_ to_fp 11 53) a_ackermann!0))))
+(assert
+ (let ((?x8 ((_ to_fp 11 53) a_ackermann!0)))
+ (let ((?x14 (fp.mul roundNearestTiesToEven ?x8 ((_ to_fp 11 53) (_ bv4607182418800017408 64)))))
+ (not (fp.eq ?x14 ((_ to_fp 11 53) (_ bv0 64)))))))
+(assert
+ (let ((?x30 (fp.add roundNearestTiesToEven (fp.mul roundNearestTiesToEven ((_ to_fp 11 53) a_ackermann!0) ((_ to_fp 11 53) (_ bv4652104065864433664 64))) ((_ to_fp 11 53) (_ bv4638321995473517281 64)))))
+(let ((?x8 ((_ to_fp 11 53) a_ackermann!0)))
+(let ((?x14 (fp.mul roundNearestTiesToEven ?x8 ((_ to_fp 11 53) (_ bv4607182418800017408 64)))))
+(let ((?x22 (fp.add roundNearestTiesToEven ((_ to_fp 11 53) (_ bv0 64)) (fp.mul roundNearestTiesToEven ?x14 ((_ to_fp 11 53) (_ bv4652104065864433664 64))))))
+(let ((?x28 (fp.add roundNearestTiesToEven (fp.add roundNearestTiesToEven ?x22 ((_ to_fp 11 53) (_ bv4638321995473517281 64))) ((_ to_fp 11 53) (_ bv4638919777955306537 64)))))
+(not (fp.eq ?x28 (fp.add roundNearestTiesToEven ?x30 ((_ to_fp 11 53) (_ bv4638919777955306537 64)))))))))))
+")
+(define sexp (string->sexp let-script))
+(remove-let-bindings sexp)
 
 (define get-formula
   (λ (cmds)
