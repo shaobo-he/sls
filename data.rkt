@@ -1,5 +1,5 @@
 #lang racket
-
+(require math/bigfloat)
 (require racket/struct)
 
 (provide (all-defined-out))
@@ -49,6 +49,9 @@
 
 (define bv<
   ((curry bv-pred) <))
+
+(define bv≤
+  ((curry bv-pred) <=))
 
 (define eval/bvadd
   ((curry eval/arith/binop) +))
@@ -136,6 +139,44 @@
 
 (define random-bv
   (λ (w)
-    (if (coin-flip 0.5)
-        (mkBV w (random (expt 2 (- w 1))))
-        (mkBV w (random (expt 2 w))))))
+    (mkBV w (random (expt 2 w)))))
+    ;(mkBV w (random 7))))
+
+;; sig-width includes the hidden bit
+(struct FloatingPoint (exp-width sig-width value)
+  #:constructor-name mkFP
+  #:methods gen:custom-write
+  [(define write-proc
+     (make-constructor-style-printer
+      (λ (fp) 'FloatingPoint)
+      (λ (fp) `(,(FloatingPoint-exp-width fp)
+                ,(FloatingPoint-sig-width fp)
+                ,(FloatingPoint-value fp)))))])
+
+(define real->FloatingPoint
+  (λ (rv exp-width sig-width)
+    (parameterize ([bf-precision sig-width])
+      (mkFP exp-width sig-width (bfcopy rv)))))
+
+(define BitVec->FloatingPoint
+  (λ (bv exp-width sig-width)
+    (if (= (BitVec-width bv) (+ exp-width sig-width))
+        (parameterize ([bf-precision sig-width])
+          (let ([bv-value (BitVec-value bv)]
+                [sig-width-wo (- sig-width 1)])
+            (let ([sig-bits (modulo bv-value (expt 2 sig-width-wo))]
+                  [exp-bits (modulo (arithmetic-shift bv-value (- 0 sig-width-wo))
+                                    (expt 2 exp-width))]
+                  [sign-bit (bitwise-bit-set? bv-value (+ exp-width sig-width-wo))])
+              (cond
+                [(= (- (expt 2 exp-width) 1) exp-bits)
+                 (if (= sig-bits 0)
+                     (bfcopy (if sign-bit -inf.bf +inf.bf))
+                     (bfcopy +nan.bf))]
+                [(= exp-bits 0) (bfcopy (if sign-bit -0.bf 0.bf))]
+                [else (bf (let ([sig (+ (expt 2 sig-width-wo) sig-bits)])
+                            (if sign-bit (- 0 sig) sig))
+                          (- (-
+                              exp-bits
+                              (- (expt 2 (- exp-width 1)) 1)) sig-width-wo))]))))
+        (error "Bit width doesn't match!"))))
