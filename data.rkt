@@ -162,21 +162,25 @@
   (λ (bv exp-width sig-width)
     (if (= (BitVec-width bv) (+ exp-width sig-width))
         (parameterize ([bf-precision sig-width])
-          (let ([bv-value (BitVec-value bv)]
-                [sig-width-wo (- sig-width 1)])
-            (let ([sig-bits (modulo bv-value (expt 2 sig-width-wo))]
-                  [exp-bits (modulo (arithmetic-shift bv-value (- 0 sig-width-wo))
-                                    (expt 2 exp-width))]
-                  [sign-bit (bitwise-bit-set? bv-value (+ exp-width sig-width-wo))])
-              (cond
-                [(= (- (expt 2 exp-width) 1) exp-bits)
-                 (if (= sig-bits 0)
-                     (bfcopy (if sign-bit -inf.bf +inf.bf))
-                     (bfcopy +nan.bf))]
-                [(= exp-bits 0) (bfcopy (if sign-bit -0.bf 0.bf))]
-                [else (bf (let ([sig (+ (expt 2 sig-width-wo) sig-bits)])
-                            (if sign-bit (- 0 sig) sig))
-                          (- (-
-                              exp-bits
-                              (- (expt 2 (- exp-width 1)) 1)) sig-width-wo))]))))
+          (let* ([bv-value (BitVec-value bv)]
+                 [sig-width-wo (- sig-width 1)]
+                 [sig-bits (modulo bv-value (expt 2 sig-width-wo))]
+                 [exp-bits (modulo (arithmetic-shift bv-value (- 0 sig-width-wo))
+                                   (expt 2 exp-width))]
+                 [exp-bias (- (expt 2 (- exp-width 1)) 1)]
+                 [sign-bit (bitwise-bit-set? bv-value (+ exp-width sig-width-wo))])
+            (cond
+              [(= (- (expt 2 exp-width) 1) exp-bits) ; exp all 1s
+               (if (= sig-bits 0)
+                   (bfcopy (if sign-bit -inf.bf +inf.bf))
+                   (bfcopy +nan.bf))]
+              [(= exp-bits 0) ; exp all 0s
+               (if (= sig-bits 0)
+                   (bfcopy (if sign-bit -0.bf 0.bf))
+                   (bf (if sign-bit (- 0 sig-bits) sig-bits)
+                       (- (+ (- 0 exp-bias) 1) sig-width-wo)))]
+              [else (bf (let ([sig (+ (expt 2 sig-width-wo) sig-bits)])
+                          (if sign-bit (- 0 sig) sig))
+                        (- (- exp-bits exp-bias)
+                           sig-width-wo))])))
         (error "Bit width doesn't match!"))))
