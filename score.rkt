@@ -1,6 +1,6 @@
 #lang racket
 
-(require "data.rkt")
+(require "data/bit-vec.rkt")
 
 (provide (all-defined-out))
 

@@ -2,7 +2,7 @@
 
 (require "parser.rkt")
 (require "score.rkt")
-(require "data.rkt")
+(require "data/bit-vec.rkt")
 
 
 (define select/Candidates
