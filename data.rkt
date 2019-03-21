@@ -153,19 +153,26 @@
                 ,(FloatingPoint-sig-width fp)
                 ,(FloatingPoint-value fp)))))])
 
-(define fp/infinity?
-  (λ (fp)
-    (bfinfinite? (FloatingPoint-value fp))))
+;; floating-point predicates
+(define ((fp/pred pred) fp)
+  (pred (FloatingPoint-value fp)))
 
-(define fp/nan?
-  (λ (fp)
-    (bfnan? (FloatingPoint-value fp))))
+(define fp/infinity? (fp/pred bfinfinite?))
 
+(define fp/nan? (fp/pred bfnan?))
+
+(define fp/zero? (fp/pred bfzero?))
+
+(define fp/negative? (fp/pred bfnegative?))
+
+;; floating-point related conversions
+;; real->fp
 (define real->FloatingPoint
   (λ (rv exp-width sig-width)
     (parameterize ([bf-precision sig-width])
-      (mkFP exp-width sig-width (bfcopy rv)))))
+      (mkFP exp-width sig-width (bf rv)))))
 
+;; bv->fp
 (define BitVec->FloatingPoint
   (λ (bv exp-width sig-width)
     (mkFP exp-width sig-width
@@ -194,6 +201,7 @@
                                  sig-width-wo))])))
               (error "Bit width doesn't match!")))))
 
+; fp->bv
 (define FloatingPoint->BitVec
   (λ (fp)
     (let* ([exp-width (FloatingPoint-exp-width fp)]
@@ -210,15 +218,16 @@
        (cond
          [(fp/nan? fp) (error "no unique bv representation for nans!")]
          [(fp/infinity? fp) (sign-wrap (arithmetic-shift (- (expt 2 exp-width) 1) sig-width-wo))]
+         [(fp/zero? fp) (sign-wrap 0)]
          [else
           (let-values ([(sig exp) (bigfloat->sig+exp fp-val)])
             (sign-wrap
-             (if (and (>= sig (expt 2 sig-width-wo))
-                      (< sig (expt 2 sig-width)))
-                 (if (>= exp (- (- 1 exp-bias) sig-width-wo)) ; normals
-                     (+
-                      (arithmetic-shift (- exp (- (- 0 exp-bias) sig-width)) (- sig-width-wo 1))
-                      (modulo sig (expt 2 (- sig-width 1))))
-                     (/ sig (expt 2 (- (- 1 (+ exp-bias sig-width-wo)) exp))))
-                 (error "unrecognized format for sig+exp!"))))])))))
-
+             (let ([sig (abs sig)])
+               (if (and (>= sig (expt 2 sig-width-wo))
+                        (< sig (expt 2 sig-width)))
+                   (if (>= exp (- (- 1 exp-bias) sig-width-wo)) ; normals
+                       (+
+                        (arithmetic-shift (+ (+ exp exp-bias) sig-width-wo) sig-width-wo)
+                        (modulo sig (expt 2 (- sig-width 1))))
+                       (/ sig (expt 2 (- (- 1 (+ exp-bias sig-width-wo)) exp))))
+                   (error "unrecognized format for sig+exp!")))))])))))
