@@ -27,7 +27,7 @@
 
 ; arithmetic operations
 ; binary
-(define ((eval/arith/binop op) bv1 bv2)
+(define ((eval/bvarith/binop op) bv1 bv2)
   (let ([r (op (BitVec-value bv1)
                (BitVec-value bv2))]
         [d (expt 2 (BitVec-width bv1))])
@@ -47,13 +47,13 @@
 
 (define bv≤ (bv-pred <=))
 
-(define eval/bvadd (eval/arith/binop +))
+(define eval/bvadd (eval/bvarith/binop +))
 
-(define eval/bvsub (eval/arith/binop -))
+(define eval/bvsub (eval/bvarith/binop -))
 
-(define eval/bvmul (eval/arith/binop *))
+(define eval/bvmul (eval/bvarith/binop *))
 
-(define eval/bvudiv (eval/arith/binop /))
+(define eval/bvudiv (eval/bvarith/binop /))
 
 (define eval/bvurem
   (λ (bv1 bv2)
