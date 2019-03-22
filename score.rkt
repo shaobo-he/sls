@@ -1,10 +1,11 @@
 #lang racket
 
 (require "data/bit-vec.rkt")
+(require "data/fp.rkt")
 
 (provide (all-defined-out))
 
-(define get-bv
+(define get-value
   (λ (assignment sym)
     (hash-ref assignment (symbol->string sym))))
 
@@ -26,8 +27,12 @@
                                                (substring
                                                 (symbol->string op1)
                                                 (string-length "bv"))))]
+                        [`(fp.add ,rm ,op1 ,op2) (eval/fpadd (eval^ op1) (eval^ op2))]
+                        [`(fp.sub ,rm ,op1 ,op2) (eval/fpsub (eval^ op1) (eval^ op2))]
+                        [`(fp.mul ,rm ,op1 ,op2) (eval/fpmul (eval^ op1) (eval^ op2))]
+                        [`(fp.div ,rm ,op1 ,op2) (eval/fpdiv (eval^ op1) (eval^ op2))]
                         [`(,op ...) (error "unsupported operations")]
-                        [else (get-bv assignment be)]))])
+                        [else (get-value assignment be)]))])
       (eval^ be))))
 
 (define Hamming-distance
@@ -77,7 +82,7 @@
 
 (define score-bool
   (λ (b assignment)
-    (eval/id (get-bv assignment b))))
+    (eval/id (get-value assignment b))))
 
 (define score-bool!
   (λ (b assignment)
@@ -89,7 +94,7 @@
 
 (define score
   (λ (c assignment formula)
-    (let ([get-bv^ ((curry get-bv) assignment)])
+    (let ([get-value^ ((curry get-value) assignment)])
       (match formula
         [`⊤ 1.0]
         [`⊥ 0.0]
