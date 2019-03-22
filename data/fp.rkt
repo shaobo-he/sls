@@ -17,10 +17,6 @@
                 ,(FloatingPoint-sig-width fp)
                 ,(FloatingPoint-value fp)))))])
 
-;; floating-point predicates
-(define ((fp/pred pred) fp)
-  (pred (FloatingPoint-value fp)))
-
 ;; floating-point arithmetic
 (define fp/result-infinity?
   (λ (v exp-width sig-width)
@@ -85,14 +81,23 @@
 (define eval/fpmul (eval/fparith/binop bf*))
 (define eval/fpdiv (eval/fparith/binop bf/))
 
+;; floating-point predicates
+(define ((fp/pred/uni pred) fp)
+  (pred (FloatingPoint-value fp)))
 
-(define fp/infinity? (fp/pred bfinfinite?))
+(define ((fp/pred/bin pred) fp1 fp2)
+  (pred (FloatingPoint-value fp1) (FloatingPoint-value fp2)))
 
-(define fp/nan? (fp/pred bfnan?))
+(define fp/infinity? (fp/pred/uni bfinfinite?))
+(define fp/nan? (fp/pred/uni bfnan?))
+(define fp/zero? (fp/pred/uni bfzero?))
+(define fp/negative? (fp/pred/uni bfnegative?))
 
-(define fp/zero? (fp/pred bfzero?))
-
-(define fp/negative? (fp/pred bfnegative?))
+(define fp= (fp/pred/bin bf=))
+(define fp< (fp/pred/bin bf<))
+(define fp> (fp/pred/bin bf>))
+(define fp≤ (fp/pred/bin bf<=))
+(define fp≥ (fp/pred/bin bf>=))
 
 ;; floating-point related conversions
 ;; real->fp
