@@ -116,7 +116,7 @@ v1048575 32)) (_ bv1072693248 32)))))
  (= ?x56 ((_ to_fp 11 53) fresh_to_ieee_bv_!3))))))))))
 ")
 (define sexp (string->sexp let-script))
-(remove-let-bindings sexp)
+;(remove-let-bindings sexp)
 
 (define get-formula
   (λ (cmds)
@@ -191,3 +191,54 @@ v1048575 32)) (_ bv1072693248 32)))))
 (define test-vars (get-vars (string->sexp test-script)))
 (define kenken-formula (unnest (formula->nnf (get-formula (file->sexp "test/test3.smt2")))))
 (define kenken-vars (get-vars (file->sexp "test/test3.smt2")))
+
+(define fp-test-formula (file->sexp "/tmp/fp1.z3"))
+
+(define read-hex
+  (λ (v p o1 o2 o3 o4)
+    (define read-hex^
+      (λ (p vs)
+        (define c (peek-char p))
+        (if (or
+             (and (char<=? #\0 c)
+                  (char<=? c #\9))
+             (or
+              (and (char<=? #\a c)
+                   (char<=? c #\f))
+              (and (char<=? #\A c)
+                   (char<=? c #F))))
+            (begin
+              (read-char p)
+              (read-hex^ p (string-append vs (string c))))
+            vs)))
+    (let ([str (read-hex^ p "")])
+      `(BVConst
+        ,(* 4 (string-length str))
+        ,(string->number (string-append "#x" str))))))
+
+(define read-bin
+  (λ (v p o1 o2 o3 o4)
+    (define read-bin^
+      (λ (p vs)
+        (define c (peek-char p))
+        (if (and (char<=? #\0 c)
+                 (char<=? c #\1))
+            (begin
+              (read-char p)
+              (read-bin^ p (string-append vs (string c))))
+            vs)))
+    (let ([str (read-bin^ p "")])
+      `(BVConst
+        ,(string-length str)
+        ,(string->number (string-append "#b" str))))))
+
+(define smt-read-table
+  (make-readtable
+   (make-readtable
+    #f
+    #\x
+    'dispatch-macro
+    read-hex)
+   #\b
+   'dispatch-macro
+   read-bin))
