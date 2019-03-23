@@ -12,9 +12,13 @@
       [`(and, exprs ...) `(∧ ,@(map transform-expr exprs))]
       [`(or, exprs ...) `(∨ ,@(map transform-expr exprs))]
       [`(implies, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
+      [`(=>, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
       ;[`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
-      [`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]      
-      [else sexp])))
+      ;[`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]
+      [`(,exprs ...) (map transform-expr exprs)]
+      ['true '⊤]
+      ['false '⊥]
+      [_ sexp])))
 
 ; shamelessly stole it from https://homes.cs.washington.edu/~emina/media/sat/code.html#normal-formsrkt
 (define formula->nnf
@@ -41,6 +45,38 @@
      `(,op ,@(map unnest fs))]
     [_ f]))
 
+;; simple simplifications
+;; TODO: use z3 simplications (might be pita to implement via ffi)
+(define simplify
+  (λ (sexp)
+    (define simplify∧∨
+      (λ (es cond-sym term-sym)
+        (define simplify∧∨-helper
+          (λ (es col)
+            (cond
+              [(empty? es) (reverse col)]
+              [else (let ([e (car es)])
+                      (cond
+                        [(eq? e cond-sym) (simplify∧∨-helper (cdr es) col)]
+                        [(eq? e term-sym) term-sym]
+                        [else (simplify∧∨-helper (cdr es) (cons e col))]))])))
+        (let ([result (simplify∧∨-helper es '())])
+          (match result
+            [`(∧ ,v) v]
+            [`(∨ ,v) v]
+            [else result]))))
+    (match sexp
+      [`(¬ (¬ ,e)) (simplify e)]
+      ['(¬ ⊤) '⊥]
+      ['(¬ ⊥) '⊤]
+      [`(∧ ,gs ...)
+       (simplify∧∨ `(∧ ,@(map simplify gs)) '⊤ '⊥)]
+      [`(∨ ,gs ...)
+       (simplify∧∨ `(∨ ,@(map simplify gs)) '⊥ '⊤)]
+      [`(,gs ...) (map simplify gs)]
+      [else sexp])))
+
+;; fp simplifications
 (define extract-bv-value
   (λ (bv)
     (string->number
