@@ -43,14 +43,12 @@
              0
              (map cons bs1 bs2)))))
 
-(define score=
-  (λ (c)
-    (λ (bv1 bv2)
-      (if (bv= bv1 bv2)
-          1.0
-          (* c (- 1.0
-                  (/ (Hamming-distance bv1 bv2)
-                     (BitVec-width bv1))))))))
+(define ((score= c) bv1 bv2)
+  (if (bv= bv1 bv2)
+      1.0
+      (* c (- 1.0
+              (/ (Hamming-distance bv1 bv2)
+                 (BitVec-width bv1))))))
 
 (define score!=
   (λ (bv1 bv2)
@@ -58,21 +56,27 @@
         0.0
         1.0)))
 
-(define score<
-  (λ (c)
-    (λ (bv1 bv2)
-      (if (bv< bv1 bv2)
-          1.0
-          (* c (- 1.0 (/ (- (BitVec-value bv1) (BitVec-value bv2))
-                         (expt 2 (BitVec-width bv1)))))))))
+(define ((score< c) bv1 bv2)
+  (if (bv< bv1 bv2)
+      1.0
+      (*
+       c
+       (-
+        1.0
+        (/
+         (- (BitVec-value bv1) (BitVec-value bv2))
+         (expt 2 (BitVec-width bv1)))))))
 
-(define score!<
-  (λ (c)
-    (λ (bv1 bv2)
-      (if (bv< bv1 bv2)
-          (* c (- 1.0 (/ (- (BitVec-value bv2) (BitVec-value bv1))
-                         (expt 2 (BitVec-width bv1)))))
-          1.0))))
+(define ((score!< c) bv1 bv2)
+  (if (bv< bv1 bv2)
+      (*
+       c
+       (-
+        1.0
+        (/
+         (- (BitVec-value bv2) (BitVec-value bv1))
+         (expt 2 (BitVec-width bv1)))))
+      1.0))
 
 (define score2
   (λ (op1 op2 assignment score-bf)
@@ -92,20 +96,19 @@
   (λ (es sf cf)
     (foldl (λ (e s) (cf s (sf e))) 0.0 es)))
 
-(define score
-  (λ (c assignment formula)
-    (let ([get-value^ ((curry get-value) assignment)])
-      (match formula
-        [`⊤ 1.0]
-        [`⊥ 0.0]
-        [`(∨ ,es ...) (score-seq es ((curry score) c assignment) max)]
-        [`(∧ ,es ...) (/ (score-seq es ((curry score) c assignment) +)
-                         (length es))]
-        [`(¬ (= ,op1 ,op2)) (score2 op1 op2 assignment score!=)]
-        [`(= ,op1 ,op2) (score2 op1 op2 assignment ((curry score=) c))]
-        [`(¬ (bvult ,op1 ,op2)) (score2 op1 op2 assignment ((curry score!<) c))]
-        [`(bvult ,op1 ,op2) (score2 op1 op2 assignment ((curry score<) c))]
-        [`(¬ ,b) (score-bool! b assignment)]
-        [else (score-bool formula assignment)]))))
+(define ((score c assignment) formula)
+  (let ([get-value^ ((curry get-value) assignment)])
+    (match formula
+      [`⊤ 1.0]
+      [`⊥ 0.0]
+      [`(∨ ,es ...) (score-seq es (score c assignment) max)]
+      [`(∧ ,es ...) (/ (score-seq es (score c assignment) +)
+                       (length es))]
+      [`(¬ (= ,op1 ,op2)) (score2 op1 op2 assignment score!=)]
+      [`(= ,op1 ,op2) (score2 op1 op2 assignment (score= c))]
+      [`(¬ (bvult ,op1 ,op2)) (score2 op1 op2 assignment (score!< c))]
+      [`(bvult ,op1 ,op2) (score2 op1 op2 assignment (score< c))]
+      [`(¬ ,b) (score-bool! b assignment)]
+      [else (score-bool formula assignment)])))
 
 ;(define assignment (hash-set (hash-set (make-immutable-hash) "a" (mkBV 3 1)) "b" (mkBV 3 2)))
