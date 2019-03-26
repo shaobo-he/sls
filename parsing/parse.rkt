@@ -33,14 +33,38 @@
                   [else result]))])
       (foldl get-expr '⊤ cmds))))
 
-(define get-vars
+(define get-var-info
   (λ (cmds)
     (let ([get-var
            (λ (cmd result)
              (match cmd
-               [`(declare-const ,id (_ BitVec ,size)) (cons (cons id size) result)]
+               [`(declare-const ,id ,type) (hash-set result id type)]
+               ;e.g., (declare-fun |c::main::main::1::x@1!0&0#1| () (_ FloatingPoint 8 24))
+               [`(declare-fun ,id () ,type) (hash-set result id type)]
                [else result]))])
-      (foldl get-var '() cmds))))
+      (foldl get-var (make-immutable-hash) cmds))))
+
+(define bv-type?
+  (λ (t)
+    (match t
+      [`(_ BitVec ,bw) #t]
+      [_ #f])))
+
+(define bool-type?
+  (λ (t)
+    (match t
+      ['Bool #t]
+      [_ #f])))
+
+(define fp-type?
+  (λ (t)
+    (match t
+      [`(_ FloatingPoint ,a ,b) #t]
+      ; short-cuts
+      ['Float16 #t]
+      ['Float32 #t]
+      ['Float64 #t]
+      ['Float128 #t])))
 
 (define atom?
   (λ (sexp)
@@ -56,17 +80,21 @@
       [`(∧ ,as ...) (filter list? as)]
       [_ (error "not a valid SMT formula")])))
 
+
 (define get/vars
   (λ (F assignment)
-    (letrec ([get/vars/do (λ (F)
-                            (match F
-                              [`(,op ,fs ...) (apply append (map (λ (f) (get/vars/do f)) fs))]
-                              [_ (if (number? F)
-                                     '()
-                                     (if (hash-has-key? assignment (symbol->string F))
-                                         `(,F)
-                                         '()))]))])
-      (set->list (list->set (get/vars/do F))))))
+    (define get/vars/do
+      (λ (F)
+        (match F
+          [`(,op ,fs ...)
+           (apply append (map (λ (f) (get/vars/do f)) fs))]
+          [_
+           (if (number? F)
+               '()
+               (if (hash-has-key? assignment (symbol->string F))
+                   `(,F)
+                   '()))])))
+    (set->list (list->set (get/vars/do F)))))
 
 (define build/bvconst
   (λ (v w)

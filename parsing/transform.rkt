@@ -45,7 +45,7 @@
      `(,op ,@(map unnest fs))]
     [_ f]))
 
-;; simple simplifications
+;; logical simplifications
 ;; TODO: use z3 simplications (might be pita to implement via ffi)
 (define simplify
   (λ (sexp)
@@ -118,6 +118,71 @@
         (+ sig-width-wo 1))]
       [`(,exps ...) `(,@(map remove-fpconst exps))]
       [_ sexp])))
+
+; equality simplifications
+; assume there's no duplicate equality assertion
+(define remove-equalities
+  (λ (asserts var-info)
+    (define collect-equalities
+      (λ (assert eqs)
+        (define try-insert-eqs
+          (λ (eqs vs cols hit?)
+            (cond
+              [(empty? eqs) (if hit? cols (cons (list->set vs) cols))] ; if hit ignore else add group to list
+              [else (let ([eq (car eqs)])
+                      (if
+                       hit?
+                       (try-insert-eqs (cdr eqs) vs (cons eq cols) hit?) ; already hit, continue
+                       (if
+                        (ormap
+                         (λ (v) (set-member? eq v))
+                         (filter symbol? vs)) ; found the group
+                        (if (and (not (andmap symbol? (set->list eq)))
+                                 (not (andmap symbol? vs)))
+                            ; this means we have existing equalties like a = (+ b c)
+                            ; and we try to insert a = (+ d f)
+                            ; so we need to abort
+                            (try-insert-eqs (cdr eqs) vs cols #t)
+                            (try-insert-eqs
+                             (cdr eqs)
+                             vs
+                             (cons (set-union (list->set vs) eq) cols)
+                             #t))
+                        (try-insert-eqs (cdr eqs) vs (cons eq cols) hit?))))])))
+        (match assert
+          [`(= ,lhs ,rhs)
+           (cond
+             [(and (symbol? lhs) (symbol? rhs)) (try-insert-eqs eqs `(,lhs ,rhs) '() #f)]
+             [(symbol? lhs) (try-insert-eqs eqs `(,lhs ,rhs) '() #f)]
+             [(symbol? rhs) (try-insert-eqs eqs `(,lhs ,rhs) '() #f)]
+             [else eqs])]
+          [_ eqs])))
+    (define is-eq?
+      (λ (v eqs)
+        (ormap (λ (eq) (set-member? eq v)) eqs)))
+    (define remove-eq-asserts
+      (λ (asserts eqs cols)
+        (cond
+          [(empty? asserts) cols]
+          [else (let ([assert (car asserts)])
+                  (match assert
+                    [`(= ,lhs ,rhs)
+                     (cond
+                       [(symbol? lhs)
+                        (if (is-eq? lhs eqs)
+                            (remove-eq-asserts (cdr asserts) eqs cols)
+                            (remove-eq-asserts (cdr asserts) eqs (cons assert cols)))]
+                       [(symbol? rhs)
+                        (if (is-eq? rhs eqs)
+                            (remove-eq-asserts (cdr asserts) eqs cols)
+                            (remove-eq-asserts (cdr asserts) eqs (cons assert cols)))]
+                       [else (remove-eq-asserts (cdr asserts) eqs (cons assert cols))])]
+                    [_ (remove-eq-asserts (cdr asserts) eqs (cons assert cols))]))])))
+        (let ([eqs (foldl collect-equalities '() asserts)])
+          ;(replace (remove-eq-asserts))
+          (if (empty? eqs)
+              asserts
+              (remove-eq-asserts asserts eqs '())))))
 
 (define remove-let-bindings
   (λ (sexp)

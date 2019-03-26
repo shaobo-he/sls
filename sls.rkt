@@ -1,6 +1,6 @@
 #lang racket
 
-(require "parser.rkt")
+(require "parsing/parse.rkt")
 (require "score.rkt")
 (require "data/bit-vec.rkt")
 
@@ -15,7 +15,7 @@
               (apply append
                      (map
                       (λ (candVar)
-                        (let ([bv (get-bv assignment candVar)])
+                        (let ([bv (get-value assignment candVar)])
                           (map ((curry update/Assignment) assignment candVar)
                                (get/extended-neighbors bv))))
                       candVars)))]
