@@ -52,6 +52,15 @@
       exp-width
       sig-width)))
 
+(define get/maximum-subnormal
+  (λ (exp-width sig-width)
+    (BitVec->FloatingPoint
+     (mkBV
+      (+ exp-width sig-width)
+      (- (expt 2 (- sig-width 1)) 1)
+      exp-width
+      sig-width))))
+
 (define ((eval/fparith/binop op) fp1 fp2)
   (define v1 (FloatingPoint-value fp1))
   (define v2 (FloatingPoint-value fp2))
@@ -81,6 +90,12 @@
 (define eval/fpmul (eval/fparith/binop bf*))
 (define eval/fpdiv (eval/fparith/binop bf/))
 
+(define eval/fpabs
+  (λ (fp)
+    (define exp-width (FloatingPoint-exp-width fp))
+    (define sig-width (FloatingPoint-sig-width fp))
+    (mkFP exp-width sig-width (bfabs (FloatingPoint-value fp)))))
+
 ;; floating-point predicates
 (define ((fp/pred/uni pred) fp)
   (pred (FloatingPoint-value fp)))
@@ -91,7 +106,28 @@
 (define fp/infinity? (fp/pred/uni bfinfinite?))
 (define fp/nan? (fp/pred/uni bfnan?))
 (define fp/zero? (fp/pred/uni bfzero?))
+(define fp/positive (fp/pred/uni bfpositive?))
 (define fp/negative? (fp/pred/uni bfnegative?))
+(define fp/normal?
+  (λ (fp)
+    (cond
+      [(fp/nan? fp) #f]
+      [(fp/infinity? fp) #f]
+      [(fp/zero? fp) #f]
+      [else (let ([fpp (eval/fpabs fp)])
+              (fp>
+               fpp
+               (get/maximum-subnormal)))])))
+(define fp/subnormal?
+  (λ (fp)
+    (cond
+      [(fp/nan? fp) #f]
+      [(fp/infinity? fp) #f]
+      [(fp/zero? fp) #f]
+      [else (let ([fpp (eval/fpabs fp)])
+              (fp≤
+               fpp
+               (get/maximum-subnormal)))])))
 
 (define fp= (fp/pred/bin bf=))
 (define fp< (fp/pred/bin bf<))
