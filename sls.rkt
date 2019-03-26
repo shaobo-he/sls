@@ -3,8 +3,9 @@
 (require "parsing/parse.rkt")
 (require "score.rkt")
 (require "data/bit-vec.rkt")
+(require "data/fp.rkt")
 
-
+(provide (all-defined-out))
 (define select/Candidates
   ;;(λ (F assignment selected moves c2)
   (λ (F assignment wp c2)
@@ -55,10 +56,28 @@
     (hash-set assignment (symbol->string sym) val)))
 
 (define initialize/Assignment
-  (λ (Vars)
-    (foldl (λ (Var h) (hash-set h (symbol->string (car Var)) (mkBV (cdr Var) 0)))
-           (make-immutable-hash)
-           Vars)))
+  (λ (var-info)
+    (define initialize-var
+      (λ (var-name h)
+        (hash-set
+         h
+         var-name
+         (let ([type (hash-ref var-info var-name)])
+           (cond
+             [(bv-type? type)
+              (initialize/bv (get/bv-type-width type))]
+             [(fp-type? type)
+              (let ([widths (get/fp-type-widths type)])
+                (initialize/fp
+                 (car widths)
+                 (cdr widths)))]
+             [(bool-type? type)
+              (initialize/bv 1)])
+           ))))
+    (foldl
+     initialize-var
+     (make-immutable-hash)
+     (hash-keys var-info))))
 #|
 (define initialize/selected
   (λ (F)
@@ -81,19 +100,37 @@
 |#
 
 (define randomAssign
-  (λ (Vars assign i)
+  (λ (var-info assign i)
+    (define initialize-var
+      (λ (var-name h)
+        (hash-set
+         h
+         var-name
+         (let ([type (hash-ref var-info var-name)])
+           (cond
+             [(bv-type? type)
+              (initialize/bv (get/bv-type-width type))]
+             [(fp-type? type)
+              (let ([widths (get/fp-type-widths type)])
+                (initialize/fp
+                 (car widths)
+                 (cdr widths)))]
+             [(bool-type? type)
+              (initialize/bv 1)])
+           ))))
     (begin
       ;(displayln "local maxima reached!")
       ;(displayln assign)     
       ;(displayln i)
-      (foldl (λ (Var h) (hash-set h (symbol->string (car Var)) (random-bv (cdr Var))))
-           (make-immutable-hash)
-           Vars))))
+      (foldl
+       initialize-var
+       (make-immutable-hash)
+       (hash-keys var-info)))))
       ;;(let ([c (list-ref Vars (random (length Vars)))])
       ;;  (hash-set assign (symbol->string (car c)) (random-bv (cdr c)))))))
 
 (define sls
-  (λ (Vars F c2 maxSteps wp)
+  (λ (var-info F c2 maxSteps wp)
     (letrec ([sls/do
               (λ (i assignment)
                 (if (>= i maxSteps)
@@ -105,8 +142,8 @@
                         (let ([newAssign (select/Candidates F assignment wp c2)])
                           (if (car newAssign)
                               (sls/do (+ i 1) (cdr newAssign))
-                              (sls/do (+ i 1) (randomAssign Vars (cdr newAssign) i))
+                              (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
                               )))))])
-      (sls/do 0 (initialize/Assignment Vars)))))
+      (sls/do 0 (initialize/Assignment var-info)))))
 
 (define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))

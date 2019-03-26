@@ -50,6 +50,12 @@
       [`(_ BitVec ,bw) #t]
       [_ #f])))
 
+(define get/bv-type-width
+  (λ (t)
+    (match t
+      [`(_ BitVec ,bw) bw]
+      [_ (error "not valid bv type!")])))
+
 (define bool-type?
   (λ (t)
     (match t
@@ -64,7 +70,19 @@
       ['Float16 #t]
       ['Float32 #t]
       ['Float64 #t]
-      ['Float128 #t])))
+      ['Float128 #t]
+      [_ #f])))
+
+(define get/fp-type-widths
+  (λ (t)
+    (match t
+      [`(_ FloatingPoint ,exp-width ,sig-width)
+       (cons exp-width sig-width)]
+      ['Float16 (cons 5 11)]
+      ['Float32 (cons 8 24)]
+      ['Float64 (cons 11 53)]
+      ['Float128 (cons 15 113)]
+      [_ (error "not valid fp type!")])))
 
 (define atom?
   (λ (sexp)

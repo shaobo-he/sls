@@ -22,6 +22,14 @@
       (reverse (for/list ([p (range (BitVec-width bv))])
         (if (bitwise-bit-set? v p) 1 0))))))
 
+(define initialize/bv
+  (λ (width)
+    (mkBV width 0)))
+
+(define mkBoolBV
+  (λ (b)
+    (mkBV 1 (if b 1 0))))
+    
 (define eval/id
   (curry BitVec-value))
 

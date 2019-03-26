@@ -17,6 +17,14 @@
                 ,(FloatingPoint-sig-width fp)
                 ,(FloatingPoint-value fp)))))])
 
+(define initialize/fp
+  (λ (exp-width sig-width)
+    (mkFP
+     exp-width
+     sig-width
+     (parameterize ([bf-precision sig-width])
+       (bf 0.0)))))
+
 ;; floating-point arithmetic
 (define fp/result-infinity?
   (λ (v exp-width sig-width)
@@ -106,8 +114,28 @@
 (define fp/infinity? (fp/pred/uni bfinfinite?))
 (define fp/nan? (fp/pred/uni bfnan?))
 (define fp/zero? (fp/pred/uni bfzero?))
-(define fp/positive (fp/pred/uni bfpositive?))
-(define fp/negative? (fp/pred/uni bfnegative?))
+;(define fp/positive? (fp/pred/uni bfpositive?))
+;(define fp/negative? (fp/pred/uni bfnegative?))
+
+;;[[fp.isPositive]](x) = true iff x is [[+zero]] or [[fp.lt]]([[+zero]], x) holds.
+(define fp/positive?
+  (λ (fp)
+    (cond
+      [(fp/zero? fp)
+       (=
+        (bigfloat-signbit (FloatingPoint-value fp))
+        0)]
+      [else (fp/positive? fp)])))
+
+(define fp/negative?
+  (λ (fp)
+    (cond
+      [(fp/zero? fp)
+       (=
+        (bigfloat-signbit (FloatingPoint-value fp))
+        1)]
+      [else (fp/negative? fp)])))
+
 (define fp/normal?
   (λ (fp)
     (cond
@@ -179,16 +207,18 @@
            [fp-val (FloatingPoint-value fp)]
            [sig-width-wo (- sig-width 1)]
            [exp-bias (- (expt 2 (- exp-width 1)) 1)]
-           [sign-wrap (λ (v)
-                        (if (bfnegative? fp-val)
-                            (+ v (expt 2 (+ exp-width sig-width-wo)))
-                            v))])
+           [sign-wrap (λ (v sign-bit)
+                        (+
+                         v
+                         (* sign-bit (expt 2 (+ exp-width sig-width-wo)))))])
       (mkBV
        (+ exp-width sig-width)
        (cond
          [(fp/nan? fp) (error "no unique bv representation for nans!")]
-         [(fp/infinity? fp) (sign-wrap (arithmetic-shift (- (expt 2 exp-width) 1) sig-width-wo))]
-         [(fp/zero? fp) (sign-wrap 0)]
+         [(fp/infinity? fp) (sign-wrap
+                             (arithmetic-shift (- (expt 2 exp-width) 1) sig-width-wo)
+                             (bigfloat-signbit (FloatingPoint-value fp)))]
+         [(fp/zero? fp) (sign-wrap 0 (bigfloat-signbit (FloatingPoint-value fp)))]
          [else
           (let-values ([(sig exp) (bigfloat->sig+exp fp-val)])
             (sign-wrap
@@ -200,4 +230,5 @@
                         (arithmetic-shift (+ (+ exp exp-bias) sig-width-wo) sig-width-wo)
                         (modulo sig (expt 2 (- sig-width 1))))
                        (/ sig (expt 2 (- (- 1 (+ exp-bias sig-width-wo)) exp))))
-                   (error "unrecognized format for sig+exp!")))))])))))
+                   (error "unrecognized format for sig+exp!")))
+             (bigfloat-signbit (FloatingPoint-value fp))))])))))
