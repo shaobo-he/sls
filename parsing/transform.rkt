@@ -125,8 +125,8 @@
        (real->FloatingPoint -0.0 exp-width sig-width)]
       [`(_ +oo ,exp-width ,sig-width)
        (real->FloatingPoint +inf.0 exp-width sig-width)]
-      [`(_ +oo ,exp-width ,sig-width)
-       (real->FloatingPoint +inf.0 exp-width sig-width)]
+      [`(_ -oo ,exp-width ,sig-width)
+       (real->FloatingPoint -inf.0 exp-width sig-width)]
       [`(_ NaN ,exp-width ,sig-width)
        (real->FloatingPoint +nan.0 exp-width sig-width)]
       [`(,exps ...) `(,@(map remove-fpconst exps))]
