@@ -13,7 +13,10 @@
       [`(or, exprs ...) `(∨ ,@(map transform-expr exprs))]
       [`(implies, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
       [`(=>, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
+      ; not sure why this is commented
+      ; maybe it's related performance as we compute the same expression twice
       ;[`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
+      [`(fp.leq, exprs ...) (transform-expr `(∨ (fp.eq ,@exprs) (fp.lt ,@exprs)))]
       ;[`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]
       [`(,exprs ...) (map transform-expr exprs)]
       ['true '⊤]
@@ -116,6 +119,16 @@
            (extract-bv-value sig))))
         exp-width
         (+ sig-width-wo 1))]
+      [`(_ +zero ,exp-width ,sig-width)
+       (real->FloatingPoint 0.0 exp-width sig-width)]
+      [`(_ -zero ,exp-width ,sig-width)
+       (real->FloatingPoint -0.0 exp-width sig-width)]
+      [`(_ +oo ,exp-width ,sig-width)
+       (real->FloatingPoint +inf.0 exp-width sig-width)]
+      [`(_ +oo ,exp-width ,sig-width)
+       (real->FloatingPoint +inf.0 exp-width sig-width)]
+      [`(_ NaN ,exp-width ,sig-width)
+       (real->FloatingPoint +nan.0 exp-width sig-width)]
       [`(,exps ...) `(,@(map remove-fpconst exps))]
       [_ sexp])))
 

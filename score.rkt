@@ -12,34 +12,35 @@
 ; the evaluator
 (define eval
   (λ (be assignment)
-    (letrec ([eval^ (λ (be)
-                      (match be
-                        [`(bvneg ,op) (eval/bvneg (eval^ op))]
-                        [`(bvadd ,op1 ,op2) (eval/bvadd (eval^ op1) (eval^ op2))]
-                        [`(bvsub ,op1 ,op2) (eval/bvsub (eval^ op1) (eval^ op2))]
-                        [`(bvmul ,op1 ,op2) (eval/bvmul (eval^ op1) (eval^ op2))]
-                        [`(bvudiv ,op1 ,op2) (eval/bvudiv (eval^ op1) (eval^ op2))]
-                        [`(bvurem ,op1 ,op2) (eval/bvurem (eval^ op1) (eval^ op2))]
-                        [`(bvnot ,op) (eval/bvnot (eval^ op))]
-                        [`(bvand ,op1 ,op2) (eval/bvand (eval^ op1) (eval^ op2))]
-                        [`(bvor ,op1 ,op2) (eval/bvor (eval^ op1) (eval^ op2))]
-                        [`(_ ,op1, op2) (mkBV op2 (string->number
-                                               (substring
-                                                (symbol->string op1)
-                                                (string-length "bv"))))]
-                        [`(fp.add ,rm ,op1 ,op2) (eval/fpadd (eval^ op1) (eval^ op2))]
-                        [`(fp.sub ,rm ,op1 ,op2) (eval/fpsub (eval^ op1) (eval^ op2))]
-                        [`(fp.mul ,rm ,op1 ,op2) (eval/fpmul (eval^ op1) (eval^ op2))]
-                        [`(fp.div ,rm ,op1 ,op2) (eval/fpdiv (eval^ op1) (eval^ op2))]
-                        [`(fp.isNormal ,op) (mkBoolBV (fp/normal? (eval^ op)))]
-                        [`(fp.isSubnormal ,op) (mkBoolBV (fp/subnormal? (eval^ op)))]
-                        [`(fp.isZero ,op) (mkBoolBV (fp/zero? (eval^ op)))]
-                        [`(fp.isPositive, op) (mkBoolBV (fp/positive? (eval^ op)))]
-                        [(struct FloatingPoint _) be]
-                        [(struct BitVec _) be]
-                        [`(,op ...) (error "unsupported operations")]
-                        [else (get-value assignment be)]))])
-      (eval^ be))))
+    (define eval^
+      (λ (be)
+        (match be
+          [`(bvneg ,op) (eval/bvneg (eval^ op))]
+          [`(bvadd ,op1 ,op2) (eval/bvadd (eval^ op1) (eval^ op2))]
+          [`(bvsub ,op1 ,op2) (eval/bvsub (eval^ op1) (eval^ op2))]
+          [`(bvmul ,op1 ,op2) (eval/bvmul (eval^ op1) (eval^ op2))]
+          [`(bvudiv ,op1 ,op2) (eval/bvudiv (eval^ op1) (eval^ op2))]
+          [`(bvurem ,op1 ,op2) (eval/bvurem (eval^ op1) (eval^ op2))]
+          [`(bvnot ,op) (eval/bvnot (eval^ op))]
+          [`(bvand ,op1 ,op2) (eval/bvand (eval^ op1) (eval^ op2))]
+          [`(bvor ,op1 ,op2) (eval/bvor (eval^ op1) (eval^ op2))]
+          [`(_ ,op1, op2) (mkBV op2 (string->number
+                                     (substring
+                                      (symbol->string op1)
+                                      (string-length "bv"))))]
+          [`(fp.add ,rm ,op1 ,op2) (eval/fpadd (eval^ op1) (eval^ op2))]
+          [`(fp.sub ,rm ,op1 ,op2) (eval/fpsub (eval^ op1) (eval^ op2))]
+          [`(fp.mul ,rm ,op1 ,op2) (eval/fpmul (eval^ op1) (eval^ op2))]
+          [`(fp.div ,rm ,op1 ,op2) (eval/fpdiv (eval^ op1) (eval^ op2))]
+          [`(fp.isNormal ,op) (mkBoolBV (fp/normal? (eval^ op)))]
+          [`(fp.isSubnormal ,op) (mkBoolBV (fp/subnormal? (eval^ op)))]
+          [`(fp.isZero ,op) (mkBoolBV (fp/zero? (eval^ op)))]
+          [`(fp.isPositive, op) (mkBoolBV (fp/positive? (eval^ op)))]
+          [(struct FloatingPoint _) be]
+          [(struct BitVec _) be]
+          [`(,op ...) ((displayln op) (error "unsupported operations"))]
+          [else (get-value assignment be)])))
+    (eval^ be)))
 
 (define Hamming-distance
   (λ (bv1 bv2)
@@ -158,14 +159,16 @@
       c
       (-
        1.0
-       / (- (get/fp-pos fp1) (get/fp-pos fp2))
-       (expt
-        2
-        (+ 1
-           (+
-            (FloatingPoint-exp-width fp1)
-            (FloatingPoint-sig-width fp2))
-           ))))]))
+       (/
+        (- (get/fp-pos fp1) (get/fp-pos fp2))
+        (expt
+         2
+         (+
+          1
+          (+
+           (FloatingPoint-exp-width fp1)
+           (FloatingPoint-sig-width fp2))
+          )))))]))
 
 (define ((score/fp!< c) fp1 fp2)
   (cond
@@ -177,14 +180,15 @@
       c
       (-
        1.0
-       / (- (get/fp-pos fp2) (get/fp-pos fp1))
-       (expt
-        2
-        (+ 1
+       (/ (- (get/fp-pos fp2) (get/fp-pos fp1))
+          (expt
+           2
            (+
-            (FloatingPoint-exp-width fp1)
-            (FloatingPoint-sig-width fp2))
-           ))))]))
+            1
+            (+
+             (FloatingPoint-exp-width fp1)
+             (FloatingPoint-sig-width fp2))
+            )))))]))
 
 (define score2
   (λ (op1 op2 assignment score-bf)
@@ -220,6 +224,8 @@
       [`(bvult ,op1 ,op2) (score2 op1 op2 assignment (score/bv< c))]
       [`(¬ (fp.lt ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!< c))]
       [`(fp.lt ,op1 ,op2) (score2 op1 op2 assignment (score/fp< c))]
+      [`(¬ (fp.eq ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!eq c))]
+      [`(fp.eq ,op1 ,op2) (score2 op1 op2 assignment (score/fpeq c))]
       [`(¬ ,b) (score-bool! (eval b assignment))]
       [else (score-bool (eval formula assignment))])))
 
