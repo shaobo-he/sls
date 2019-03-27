@@ -125,7 +125,7 @@
        (=
         (bigfloat-signbit (FloatingPoint-value fp))
         0)]
-      [else (fp/pred/uni bfpositive?)])))
+      [else ((fp/pred/uni bfpositive?) fp)])))
 
 (define fp/negative?
   (λ (fp)
@@ -134,7 +134,7 @@
        (=
         (bigfloat-signbit (FloatingPoint-value fp))
         1)]
-      [else (fp/pred/uni bfnegative?)])))
+      [else ((fp/pred/uni bfnegative?) fp)])))
 
 (define fp/normal?
   (λ (fp)
