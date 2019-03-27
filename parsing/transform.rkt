@@ -15,6 +15,14 @@
       [`(=>, expr1, expr2) (transform-expr `(or (not, expr1) ,expr2))]
       ; not sure why this is commented
       ; maybe it's related performance as we compute the same expression twice
+      ; UPDATE: it seems that the score function is ill-defined for now
+      ; e.g., 
+      ;(for/list ([vs (combinations (reverse '(0 1 2 3)) 2)])
+      ;  `(,(cons (car vs) (cadr vs))  
+      ;    ,((score 0.5 #f) `(bvult ,(mkBV 2 (car vs)) ,(mkBV 2 (cadr vs))))
+      ;    ,((score 0.5 #f) `(= ,(mkBV 2 (car vs)) ,(mkBV 2 (cadr vs))))))
+      ; 2 < 1 and 2 ≤ 1 shows different results if we treat 2 ≤ 1 as (∨ (2 < 1) (2 = 1))
+      ; basically 2 = 1 has a hamming distance of 0
       ;[`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
       [`(fp.leq, exprs ...) (transform-expr `(∨ (fp.eq ,@exprs) (fp.lt ,@exprs)))]
       ;[`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]
