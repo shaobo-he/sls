@@ -54,15 +54,15 @@
 ; bv's equality
 (define (score/bv= c bv1 bv2)
   (if (bv= bv1 bv2)
-      1.0
-      (* c (- 1.0
+      1
+      (* c (- 1
               (/ (Hamming-distance bv1 bv2)
                  (BitVec-width bv1))))))
 ; fp's equality
 (define (score/fp= c fp1 fp2)
   (cond
-    [(and (fp/nan? fp1) (fp/nan? fp2)) 1.0]
-    [(or (fp/nan? fp1) (fp/nan? fp2)) 0.0]
+    [(and (fp/nan? fp1) (fp/nan? fp2)) 1]
+    [(or (fp/nan? fp1) (fp/nan? fp2)) 0]
     [else
      (score/bv=
       c
@@ -79,14 +79,14 @@
 (define score/bv!=
   (λ (bv1 bv2)
     (if (bv= bv1 bv2)
-        0.0
-        1.0)))
+        0
+        1)))
 ; fp's inequality
 (define score/fp!=
   (λ (fp1 fp2)
     (cond
-      [(and (fp/nan? fp1) (fp/nan? fp2)) 0.0]
-      [(or (fp/nan? fp1) (fp/nan? fp2)) 1.0]
+      [(and (fp/nan? fp1) (fp/nan? fp2)) 0]
+      [(or (fp/nan? fp1) (fp/nan? fp2)) 1]
       [else
        (score/bv!=
         (FloatingPoint->BitVec fp1)
@@ -101,12 +101,12 @@
 ; fp's equality/inequality
 (define ((score/fpeq c) fp1 fp2)
   (cond
-    [(or (fp/nan? fp1) (fp/nan? fp2)) #f]
+    [(or (fp/nan? fp1) (fp/nan? fp2)) 0]
     [else (score/fp= c fp1 fp2)]))
 
 (define (score/fp!eq fp1 fp2)
   (cond
-    [(or (fp/nan? fp1) (fp/nan? fp2)) #t]
+    [(or (fp/nan? fp1) (fp/nan? fp2)) 1]
     [else (score/bv!=
            (FloatingPoint->BitVec fp1)
            (FloatingPoint->BitVec fp2))]))
@@ -114,11 +114,11 @@
 ; bv's lt
 (define ((score/bv< c) bv1 bv2)
   (if (bv< bv1 bv2)
-      1.0
+      1
       (*
        c
        (-
-        1.0
+        1
         (/
          (- (BitVec-value bv1) (BitVec-value bv2))
          (expt 2 (BitVec-width bv1)))))))
@@ -129,11 +129,11 @@
       (*
        c
        (-
-        1.0
+        1
         (/
          (- (BitVec-value bv2) (BitVec-value bv1))
          (expt 2 (BitVec-width bv1)))))
-      1.0))
+      1))
 
 ; fp's lt
 
@@ -151,14 +151,14 @@
 
 (define ((score/fp< c) fp1 fp2)
   (cond
-    [(or (fp/nan? fp1) (fp/nan? fp2)) 0.0]
-    [(fp< fp1 fp2) 1.0]
+    [(or (fp/nan? fp1) (fp/nan? fp2)) 0]
+    [(fp< fp1 fp2) 1]
     ;; fp1 >= fp2 and fp1 != nan and fp2 != nan
     [else
      (*
       c
       (-
-       1.0
+       1
        (/
         (- (get/fp-pos fp1) (get/fp-pos fp2))
         (expt
@@ -172,14 +172,14 @@
 
 (define ((score/fp!< c) fp1 fp2)
   (cond
-    [(or (fp/nan? fp1) (fp/nan? fp2)) 1.0]
-    [(fp≥ fp1 fp2) 1.0]
+    [(or (fp/nan? fp1) (fp/nan? fp2)) 1]
+    [(fp≥ fp1 fp2) 1]
     ;; fp1 < fp2 and fp1 != nan and fp2 != nan
     [else
      (*
       c
       (-
-       1.0
+       1
        (/ (- (get/fp-pos fp2) (get/fp-pos fp1))
           (expt
            2
@@ -204,17 +204,17 @@
 
 (define score-bool!
   (λ (v)
-    (- 1.0 (score-bool v))))
+    (- 1 (score-bool v))))
 
 (define score-seq
   (λ (es sf cf)
-    (foldl (λ (e s) (cf s (sf e))) 0.0 es)))
+    (foldl (λ (e s) (cf s (sf e))) 0 es)))
 
 (define ((score c assignment) formula)
   (let ([get-value^ ((curry get-value) assignment)])
     (match formula
-      [`⊤ 1.0]
-      [`⊥ 0.0]
+      [`⊤ 1]
+      [`⊥ 0]
       [`(∨ ,es ...) (score-seq es (score c assignment) max)]
       [`(∧ ,es ...) (/ (score-seq es (score c assignment) +)
                        (length es))]
