@@ -6,10 +6,18 @@
 (require "data/fp.rkt")
 
 (provide (all-defined-out))
+
+(define get/extended-neighbors
+  (λ (v)
+    (match v
+      [(struct BitVec _) (get/bv-extended-neighbors v)]
+      [(struct FloatingPoint _) (get/fp-extended-neighbors v)]
+      [_ (error "unimplemented type!")])))
+
 (define select/Candidates
   ;;(λ (F assignment selected moves c2)
   (λ (F assignment wp c2)
-    (let* ([currScore (score c2 assignment F)]
+    (let* ([currScore ((score c2 assignment) F)]
            [candAssertion (select/Assertion F assignment c2)]
            [get/neighbors
             (λ (candVars)
@@ -26,12 +34,12 @@
                 (if (coin-flip wp)
                     (cons #t (list-ref neighbors (random (length neighbors))))
                     (cons #f (argmax
-                     (λ (a) (score c2 a F))
+                     (λ (a) ((score c2 a) F))
                      neighbors)))))])
       (let ([local-opt (select/Move (get/vars candAssertion assignment))])
         (if (car local-opt)
             (cons #t (cdr local-opt))
-        (if (> (score c2 (cdr local-opt) F) currScore)
+        (if (> ((score c2 (cdr local-opt)) F) currScore)
             (cons #t (cdr local-opt))
             (cons #f (cdr local-opt))))))))
 
@@ -41,19 +49,19 @@
     ;; assume when the score of an assertion is 1, it's satisfiable
     ;; no diversification TODO: UCB
     (let ([as (get/assertions F)])
-      (cdr (argmax (λ (t) (let ([s (score c2 assignment (cdr t))])
-                            (if (< s 1.0) s -1.0)))
+      (cdr (argmax (λ (t) (let ([s ((score c2 assignment) (cdr t))])
+                            (if (< s 1) s -1)))
                    (for/list ([i (in-range (length as))]
                               [a as])
                      (cons i a)))))))
 
 (define isSat?
   (λ (F assignment c2)
-    (= (score c2 assignment F) 1.0)))
+    (= ((score c2 assignment) F) 1.0)))
 
 (define update/Assignment
   (λ (assignment sym val)
-    (hash-set assignment (symbol->string sym) val)))
+    (hash-set assignment sym val)))
 
 (define initialize/Assignment
   (λ (var-info)
@@ -109,19 +117,19 @@
          (let ([type (hash-ref var-info var-name)])
            (cond
              [(bv-type? type)
-              (initialize/bv (get/bv-type-width type))]
+              (random/bv (get/bv-type-width type))]
              [(fp-type? type)
               (let ([widths (get/fp-type-widths type)])
-                (initialize/fp
+                (random/fp
                  (car widths)
                  (cdr widths)))]
              [(bool-type? type)
-              (initialize/bv 1)])
+              (random/bv 1)])
            ))))
     (begin
-      ;(displayln "local maxima reached!")
-      ;(displayln assign)     
-      ;(displayln i)
+      (displayln "local maxima reached!")
+      (displayln assign)     
+      (displayln i)
       (foldl
        initialize-var
        (make-immutable-hash)
@@ -131,19 +139,21 @@
 
 (define sls
   (λ (var-info F c2 maxSteps wp)
-    (letrec ([sls/do
-              (λ (i assignment)
-                (if (>= i maxSteps)
-                    'unknown
-                    (if (isSat? F assignment c2)
-                        (begin
-                          (displayln i)
-                        assignment)
-                        (let ([newAssign (select/Candidates F assignment wp c2)])
-                          (if (car newAssign)
-                              (sls/do (+ i 1) (cdr newAssign))
-                              (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
-                              )))))])
-      (sls/do 0 (initialize/Assignment var-info)))))
+    (define sls/do
+      (λ (i assignment)
+        (if (>= i maxSteps)
+            (begin
+              (displayln assignment)
+              'unknown)
+            (if (isSat? F assignment c2)
+                (begin
+                  (displayln i)
+                  assignment)
+                (let ([newAssign (select/Candidates F assignment wp c2)])
+                  (if (car newAssign)
+                      (sls/do (+ i 1) (cdr newAssign))
+                      (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
+                      ))))))
+    (sls/do 0 (initialize/Assignment var-info))))
 
-(define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))
+;(define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))

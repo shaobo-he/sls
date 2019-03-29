@@ -123,10 +123,9 @@
       (for/list ([f `(,eval/bvadd ,eval/bvsub)])
         (f bv (mkBV w 1))))))
 
-(define get/extended-neighbors
+(define get/bv-extended-neighbors
   (λ (bv)
     (append (get/1-exchange bv) (get/±1 bv))))
-    ;(get/1-exchange bv)))
 
 (define coin-flip
   (λ (p)
@@ -134,7 +133,6 @@
         #t
         #f)))
 
-(define random-bv
+(define random/bv
   (λ (w)
-    (mkBV w (random (expt 2 w)))))
-    ;(mkBV w (random 7))))
+    (mkBV w (random (expt 2 (- w 1))))))

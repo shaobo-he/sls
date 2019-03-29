@@ -106,10 +106,12 @@
         (match F
           [`(,op ,fs ...)
            (apply append (map (λ (f) (get/vars/do f)) fs))]
+          [(struct FloatingPoint _) '()]
+          [(struct BitVec _) '()]
           [_
            (if (number? F)
                '()
-               (if (hash-has-key? assignment (symbol->string F))
+               (if (hash-has-key? assignment F)
                    `(,F)
                    '()))])))
     (set->list (list->set (get/vars/do F)))))

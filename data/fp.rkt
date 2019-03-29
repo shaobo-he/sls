@@ -25,7 +25,60 @@
      (parameterize ([bf-precision sig-width])
        (bf 0.0)))))
 
+(define random/fp
+  (λ (exp-width sig-width)
+    (BitVec->FloatingPoint
+     (random/bv (+ exp-width sig-width))
+     exp-width
+     sig-width)))
+
+(define get/fp-extended-neighbors
+  (λ (fp)
+    (define exp-width (FloatingPoint-exp-width fp))
+    (define sig-width (FloatingPoint-sig-width fp))
+    (define fp-val (FloatingPoint-value fp))
+    (cond
+      [(fp/nan? fp) `(,(random/fp exp-width sig-width))]
+      [else
+       (let* ([ns (map
+                   (λ (bv) (BitVec->FloatingPoint bv exp-width sig-width))
+                   (get/bv-extended-neighbors (FloatingPoint->BitVec fp)))]
+              [fns (filter (λ (fp) (not (fp/nan? fp))) ns)])
+         (if (= (length ns) (length fns))
+             fns
+             (cons (real->FloatingPoint +nan.f exp-width sig-width) fns)))])))
+
 ;; floating-point arithmetic
+(define fp/round-to-subnormal
+  (λ (v exp-width sig-width)
+    (define subnormal-min
+      (FloatingPoint-value
+       (BitVec->FloatingPoint
+        (mkBV
+         (+ exp-width sig-width)
+         1)
+        exp-width
+        sig-width)))
+    (define pv (bfabs v))
+    (let-values
+        ([(s1 p1) (bigfloat->sig+exp pv)]
+         [(s2 p2) (bigfloat->sig+exp subnormal-min)])
+      (let ([r (round
+                (/
+                 (* s1 (expt 2 p1))
+                 (* s2 (expt 2 p2))))])
+        (cond
+          [(< r 1) (if (bfpositive? v)
+                       (real->FloatingPoint 0.0 exp-width sig-width)
+                       (real->FloatingPoint -0.0 exp-width sig-width))]
+          [else (let ([rv (BitVec->FloatingPoint
+                           (mkBV (+ exp-width sig-width) r)
+                           exp-width
+                           sig-width)])
+                  (if (bfpositive? v)
+                      rv
+                      (eval/neg rv)))])))))
+
 (define fp/result-infinity?
   (λ (v exp-width sig-width)
     (define pv (bfabs v))
@@ -65,9 +118,9 @@
     (BitVec->FloatingPoint
      (mkBV
       (+ exp-width sig-width)
-      (- (expt 2 (- sig-width 1)) 1)
+      (- (expt 2 (- sig-width 1)) 1))
       exp-width
-      sig-width))))
+      sig-width)))
 
 (define ((eval/fparith/binop op) fp1 fp2)
   (define v1 (FloatingPoint-value fp1))
@@ -86,11 +139,19 @@
       ;; apply arithmetic
       (let ([result (parameterize ([bf-precision sig-w-1])
                       (op v1 v2))])
-        (if (fp/result-infinity? result exp-w-1 sig-w-1)
-            (if (bfpositive? result)
-                (get/+inf exp-w-1 sig-w-1)
-                (get/-inf exp-w-1 sig-w-1))
-            (mkFP exp-w-1 sig-w-1 result)))
+        (cond
+          [(fp/result-infinity? result exp-w-1 sig-w-1)
+           (if (bfpositive? result)
+               (get/+inf exp-w-1 sig-w-1)
+               (get/-inf exp-w-1 sig-w-1))]
+          [(and
+            (not
+             (bfzero? result))
+            (bf<=
+             result
+             (FloatingPoint-value (get/maximum-subnormal exp-w-1 sig-w-1))))
+           (fp/round-to-subnormal result exp-w-1 sig-w-1)]
+          [else (mkFP exp-w-1 sig-w-1 result)]))
       (error "invalid arithmetic operation")))
 
 (define eval/fpadd (eval/fparith/binop bf+))
@@ -103,6 +164,16 @@
     (define exp-width (FloatingPoint-exp-width fp))
     (define sig-width (FloatingPoint-sig-width fp))
     (mkFP exp-width sig-width (bfabs (FloatingPoint-value fp)))))
+
+(define eval/neg
+  (λ (fp)
+    (define exp-width (FloatingPoint-exp-width fp))
+    (define sig-width (FloatingPoint-sig-width fp))
+    (mkFP
+     exp-width
+     sig-width
+     (parameterize ([bf-precision sig-width])
+       (bf* (bf -1.0) (FloatingPoint-value fp))))))
 
 ;; floating-point predicates
 (define ((fp/pred/uni pred) fp)
