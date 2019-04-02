@@ -1,6 +1,7 @@
 #lang racket
 
 (require racket/struct)
+(require math/base)
 
 (provide (all-defined-out))
 ; `value` is a positive integer whose two's complement
@@ -135,4 +136,4 @@
 
 (define random/bv
   (λ (w)
-    (mkBV w (random (expt 2 (- w 1))))))
+    (mkBV w (random-natural (expt 2 w)))))
