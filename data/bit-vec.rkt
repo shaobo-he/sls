@@ -53,8 +53,9 @@
 (define bv= (bv-pred =))
 
 (define bv< (bv-pred <))
-
+(define bv> (bv-pred >))
 (define bv≤ (bv-pred <=))
+(define bv≥ (bv-pred >=))
 
 (define eval/bvadd (eval/bvarith/binop +))
 
