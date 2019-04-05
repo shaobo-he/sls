@@ -77,7 +77,7 @@
                            sig-width)])
                   (if (bfpositive? v)
                       rv
-                      (eval/neg rv)))])))))
+                      (eval/fpneg rv)))])))))
 
 (define fp/result-infinity?
   (λ (v exp-width sig-width)
@@ -165,7 +165,7 @@
     (define sig-width (FloatingPoint-sig-width fp))
     (mkFP exp-width sig-width (bfabs (FloatingPoint-value fp)))))
 
-(define eval/neg
+(define eval/fpneg
   (λ (fp)
     (define exp-width (FloatingPoint-exp-width fp))
     (define sig-width (FloatingPoint-sig-width fp))
@@ -186,7 +186,7 @@
         (fp/nan? fp)
         (fp/infinity? fp)) (make-new-fp fp)]
       [else (let ([new-fp (make-new-fp fp)])
-              ((eval/fparith/binop (λ (f s) (f))) new-fp new-fp))])))
+              ((eval/fparith/binop (λ (f s) f)) new-fp new-fp))])))
 
 ;; floating-point predicates
 (define ((fp/pred/uni pred) fp)
