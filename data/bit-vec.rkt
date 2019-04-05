@@ -23,6 +23,14 @@
       (reverse (for/list ([p (range (BitVec-width bv))])
         (if (bitwise-bit-set? v p) 1 0))))))
 
+(define BitVec->BVConst
+  (λ (bv)
+    `(_
+      ,(string->symbol (string-append
+                        "bv"
+                        (number->string (BitVec-value bv))))
+      ,(BitVec-width bv))))
+
 (define initialize/bv
   (λ (width)
     (mkBV width 0)))
@@ -51,7 +59,6 @@
       (error "not the same bit-width")))
 
 (define bv= (bv-pred =))
-
 (define bv< (bv-pred <))
 (define bv> (bv-pred >))
 (define bv≤ (bv-pred <=))

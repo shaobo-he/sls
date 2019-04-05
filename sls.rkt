@@ -15,6 +15,20 @@
       [(struct FloatingPoint _) (get/fp-extended-neighbors v)]
       [_ (error "unimplemented type!")])))
 
+(define print/models
+  (λ (assignment)
+    (for ([pr (hash->list assignment)])
+      (define name (car pr))
+      (define value (cdr pr))
+      (displayln
+       `(assert
+         (=
+          ,(match value
+             [(struct BitVec _) (BitVec->BVConst value)]
+             [(struct FloatingPoint _) (FloatingPoint->FPConst value)]
+             [_ (error "unimplemented type!")])
+          ,name))))))
+
 #|
 (define isSat?
   (λ (F assignment c2)
@@ -152,7 +166,9 @@
                   (if (andmap (λ (s) (= s 1)) assert-scores)
                     (begin
                       ;(displayln i)
-                      assignment)
+                      (displayln assignment)
+                      (print/models assignment)
+                      'sat)
                     (let ([newAssign (select/Candidates assert-scores)])
                       (if (car newAssign)
                           (sls/do (+ i 1) (cdr newAssign))

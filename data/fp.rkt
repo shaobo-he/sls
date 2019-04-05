@@ -17,6 +17,45 @@
                 ,(FloatingPoint-sig-width fp)
                 ,(FloatingPoint-value fp)))))])
 
+(define FloatingPoint->FPConst
+  (λ (fp)
+    (define exp-width (FloatingPoint-exp-width fp))
+    (define sig-width (FloatingPoint-sig-width fp))
+    (cond
+      [(fp/nan? fp) `(_ NaN ,exp-width ,sig-width)]
+      [(fp/infinity? fp) `(_
+                           ,(if (fp/positive? fp)
+                                '+oo
+                                '-oo)
+                           ,exp-width
+                           ,sig-width)]
+      [(fp/zero? fp) `(_
+                       ,(if (fp/positive? fp)
+                            '+zero
+                            '-zero)
+                       ,exp-width
+                       ,sig-width)]
+      [else (let ([abs-value
+                   (bitwise-and
+                    (BitVec-value (FloatingPoint->BitVec fp))
+                    (- (expt 2 (- (+ exp-width sig-width) 1)) 1))]
+                  [sig-width-wo (- sig-width 1)])
+              `(fp
+                ,(BitVec->BVConst
+                  (if (fp/positive? fp)
+                      (mkBV 1 0)
+                      (mkBV 1 1)))
+                ,(BitVec->BVConst
+                  (mkBV
+                   exp-width
+                   (arithmetic-shift abs-value (- 0 sig-width-wo))))
+                ,(BitVec->BVConst
+                  (mkBV
+                   sig-width-wo
+                   (bitwise-and
+                    (- (expt 2 sig-width-wo) 1)
+                    abs-value)))))])))
+
 (define initialize/fp
   (λ (exp-width sig-width)
     (mkFP
