@@ -148,7 +148,7 @@
             (not
              (bfzero? result))
             (bf<=
-             result
+             (bfabs result)
              (FloatingPoint-value (get/maximum-subnormal exp-w-1 sig-w-1))))
            (fp/round-to-subnormal result exp-w-1 sig-w-1)]
           [else (mkFP exp-w-1 sig-w-1 result)]))
@@ -174,6 +174,19 @@
      sig-width
      (parameterize ([bf-precision sig-width])
        (bf* (bf -1.0) (FloatingPoint-value fp))))))
+
+(define eval/fpconv
+  (λ (fp dest-exp-width dest-sig-width)
+    (define make-new-fp
+      (λ (fp)
+        (parameterize ([bf-precision dest-sig-width])
+          (mkFP dest-exp-width dest-sig-width (bfcopy (FloatingPoint-value fp))))))
+    (cond
+      [(or
+        (fp/nan? fp)
+        (fp/infinity? fp)) (make-new-fp fp)]
+      [else (let ([new-fp (make-new-fp fp)])
+              ((eval/fparith/binop (λ (f s) (f))) new-fp new-fp))])))
 
 ;; floating-point predicates
 (define ((fp/pred/uni pred) fp)
