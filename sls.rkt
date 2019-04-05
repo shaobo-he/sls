@@ -88,9 +88,9 @@
               (random/bv 1)])
            ))))
     (begin
-      (displayln "local maxima reached!")
-      (displayln assign)     
-      (displayln i)
+      ;(displayln "local maxima reached!")
+      ;(displayln assign)     
+      ;(displayln i)
       (foldl
        initialize-var
        (make-immutable-hash)
@@ -143,14 +143,14 @@
         (cond
           [(>= i maxSteps)
            (begin
-             (displayln assignment)
+             ;(displayln assignment)
              'unknown)]
           [else (let* ([asserts (get/assertions F)]
                        [assert-scores (map (score c2 assignment) asserts)])
                  ;(if (isSat? F assignment c2)
                   (if (andmap (λ (s) (= s 1)) assert-scores)
                     (begin
-                      (displayln i)
+                      ;(displayln i)
                       assignment)
                     (let ([newAssign (select/Candidates assert-scores)])
                       (if (car newAssign)

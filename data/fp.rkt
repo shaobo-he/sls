@@ -216,7 +216,10 @@
       [else (let ([fpp (eval/fpabs fp)])
               (fp>
                fpp
-               (get/maximum-subnormal)))])))
+               (get/maximum-subnormal
+                (FloatingPoint-exp-width fp)
+                (FloatingPoint-sig-width fp))))])))
+
 (define fp/subnormal?
   (λ (fp)
     (cond
@@ -226,7 +229,9 @@
       [else (let ([fpp (eval/fpabs fp)])
               (fp≤
                fpp
-               (get/maximum-subnormal)))])))
+               (get/maximum-subnormal
+                (FloatingPoint-exp-width fp)
+                (FloatingPoint-sig-width fp))))])))
 
 (define fp= (fp/pred/bin bf=))
 (define fp< (fp/pred/bin bf<))

@@ -20,6 +20,6 @@
            [seed (string->number (vector-ref args 1))])
       (begin
         (random-seed seed)
-        (sls var-info formula 1/2 100 0.0001)))))
+        (sls var-info formula 1/2 200 0.0001)))))
 
 (main)

@@ -36,6 +36,8 @@
           [`(fp.isSubnormal ,op) (mkBoolBV (fp/subnormal? (eval^ op)))]
           [`(fp.isZero ,op) (mkBoolBV (fp/zero? (eval^ op)))]
           [`(fp.isPositive, op) (mkBoolBV (fp/positive? (eval^ op)))]
+          [`(fp.isNaN, op) (mkBoolBV (fp/nan? (eval^ op)))]
+          [`(fp.isInfinite, op) (mkBoolBV (fp/infinity? (eval^ op)))]
           [(struct FloatingPoint _) be]
           [(struct BitVec _) be]
           [`(,op ...) ((displayln op) (error "unsupported operations"))]
@@ -276,7 +278,7 @@
       [`(fp.gt ,op1 ,op2) (score2 op1 op2 assignment (score/fpgt c))]
       [`(¬ (fp.geq ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!geq c))]
       [`(fp.geq ,op1 ,op2) (score2 op1 op2 assignment (score/fpgeq c))]
-      [`(¬ (fp.eq ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!eq c))]
+      [`(¬ (fp.eq ,op1 ,op2)) (score2 op1 op2 assignment score/fp!eq)]
       [`(fp.eq ,op1 ,op2) (score2 op1 op2 assignment (score/fpeq c))]
       [`(¬ ,b) (score-bool! (eval b assignment))]
       [else (score-bool (eval formula assignment))])))
