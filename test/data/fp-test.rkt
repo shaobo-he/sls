@@ -4,11 +4,11 @@
          rackunit/text-ui
          "../../data/fp.rkt")
 
-(define file-tests
+(define fp-tests
   (test-suite
    "Tests for Floating-point Data Types"
 
-   (test-case
+   (test-suite
     "Creation of floating-point values"
     (check-pred
      fp/infinity?
@@ -20,11 +20,27 @@
      fp/negative?
      (real->FloatingPoint -0.0 5 11)))
    
-   (test-case
+   (test-suite
     "Floating-point to bit-vector conversions")
 
-   (test-case
-    "Floating-point arithmetic")
+   (test-suite
+    "Floating-point arithmetic"
+    (check-pred
+     (λ (x)
+       (and
+        (fp/positive? x)
+        (fp/infinity? x)))
+     (eval/fpdiv
+      (real->FloatingPoint 1.0 5 11)
+      (real->FloatingPoint 0.0 5 11)))
+    (check-pred
+     (λ (x)
+       (and
+        (fp/negative? x)
+        (fp/infinity? x)))
+     (eval/fpdiv
+      (real->FloatingPoint 1.0 5 11)
+      (real->FloatingPoint -0.0 5 11))))
    ))
 
-(run-tests file-tests)
+(run-tests fp-tests)
