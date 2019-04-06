@@ -214,6 +214,10 @@
      (parameterize ([bf-precision sig-width])
        (bf* (bf -1.0) (FloatingPoint-value fp))))))
 
+(define fp/prune
+  (λ (fp)
+    ((eval/fparith/binop (λ (f s) f)) fp fp)))
+
 (define eval/fpconv
   (λ (fp dest-exp-width dest-sig-width)
     (define make-new-fp
@@ -225,7 +229,7 @@
         (fp/nan? fp)
         (fp/infinity? fp)) (make-new-fp fp)]
       [else (let ([new-fp (make-new-fp fp)])
-              ((eval/fparith/binop (λ (f s) f)) new-fp new-fp))])))
+              (fp/prune new-fp))])))
 
 ;; floating-point predicates
 (define ((fp/pred/uni pred) fp)
@@ -295,8 +299,8 @@
 ;; real->fp
 (define real->FloatingPoint
   (λ (rv exp-width sig-width)
-    (parameterize ([bf-precision sig-width])
-      (mkFP exp-width sig-width (bf rv)))))
+    (fp/prune (parameterize ([bf-precision sig-width])
+      (mkFP exp-width sig-width (bf rv))))))
 
 ;; bv->fp
 (define BitVec->FloatingPoint
