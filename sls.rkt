@@ -114,7 +114,7 @@
       ;;  (hash-set assign (symbol->string (car c)) (random-bv (cdr c)))))))
 
 (define sls
-  (λ (var-info F c2 maxSteps wp)
+  (λ (var-info F c2 maxSteps wp start-with-zeros?)
     (define sls/do
       (λ (i assignment)
         (define select/Candidates
@@ -174,6 +174,10 @@
                           (sls/do (+ i 1) (cdr newAssign))
                           (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
                           ))))])))
-    (sls/do 0 (initialize/Assignment var-info))))
+    (sls/do
+     0
+     (if start-with-zeros?
+         (initialize/Assignment var-info)
+         (randomAssign var-info #f #f)))))
 
 ;(define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))

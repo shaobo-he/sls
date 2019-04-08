@@ -11,12 +11,13 @@
 (define c2 (make-parameter 1/2))
 (define wp (make-parameter 0.001))
 (define step (make-parameter 200))
+(define start-with-zeros? (make-parameter #t))
 
 (define file-to-analyze
   (command-line
    #:program "sls"
    #:once-each
-   [("--seed") seed-arg
+   ["--seed" seed-arg
                "RNG seed"
                (define n-seed (string->number seed-arg))
                (if (and
@@ -26,7 +27,7 @@
                     (<= n-seed (sub1 (expt 2 31))))
                    (seed n-seed)
                    (error "not a valid seed"))]
-   [("--c2") c2-arg
+   ["--c2" c2-arg
              "Score scaling constant"
              (define n-c2 (string->number c2-arg))
              (if (and
@@ -36,7 +37,7 @@
                   (<= n-c2 1))
                  (c2 n-c2)
                  (error "not a valid score scaling constant"))]
-   [("--wp") wp-arg
+   ["--wp" wp-arg
              "Diversification probability"
              (define n-wp (string->number wp-arg))
              (if (and
@@ -45,7 +46,7 @@
                   (<= n-wp 1))
                  (wp n-wp)
                  (error "not a valid diversification probability"))]
-   [("--step") step-arg
+   ["--step" step-arg
                "Search steps"
                (define n-step (string->number step-arg))
                (if (and
@@ -53,6 +54,9 @@
                     (exact-nonnegative-integer? n-step))
                    (step n-step)
                    (error "not a valid search step"))]
+   ["--initialize-with-random" ("Initialize search space with random values"
+                                "otherwise search space is initialized to all 0s")
+                               (start-with-zeros? #f)]
    #:args (filename) ; expect one command-line argument: <filename>
    ; return the argument as a filename to compile
    filename))
@@ -69,6 +73,6 @@
            [var-info (get-var-info script)])
       (begin
         (random-seed (seed))
-        (sls var-info formula (c2) (step) (wp))))))
+        (sls var-info formula (c2) (step) (wp) (start-with-zeros?))))))
 
 (main)
