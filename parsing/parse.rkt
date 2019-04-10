@@ -84,14 +84,6 @@
       ['Float128 (cons 15 113)]
       [_ (error "not valid fp type!")])))
 
-(define atom?
-  (λ (sexp)
-    (match sexp
-      [`(= ,ops ...) #t]
-      [`(bvult ,ops ...) #t]
-      [`(,op ...) #f]
-      [else #t])))
-
 (define get/assertions
   (λ (F)
     (match F

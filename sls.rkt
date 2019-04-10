@@ -118,62 +118,65 @@
     (define sls/do
       (λ (i assignment)
         (define select/Candidates
-          ;;(λ (F assignment selected moves c2)
           (λ (assert-scores)
             (let* ([currScore (/ (apply + assert-scores) (length assert-scores))]
                    [candAssertion (select/Assertion assert-scores)]
-                   [get/neighbors
+                   [get/neighbors ; get the neighors of all variables in the candidate assertion
                     (λ (candVars)
                       (apply append
                              (map
                               (λ (candVar)
-                                (let ([bv (get-value assignment candVar)])
-                                  (map ((curry update/Assignment) assignment candVar)
-                                       (get/extended-neighbors bv))))
+                                (define val (get-value assignment candVar))
+                                (map ((curry update/Assignment) assignment candVar)
+                                     (get/extended-neighbors val)))
                               candVars)))]
                    [select/Move
                     (λ (candVars)
-                      (let ([neighbors (get/neighbors candVars)])
-                        (if (coin-flip wp)
-                            (cons #t (list-ref neighbors (random (length neighbors))))
-                            (cons #f (argmax
-                                      (λ (a) ((score c2 a) F))
-                                      neighbors)))))])
+                      (define neighbors (get/neighbors candVars))
+                      (if (coin-flip wp)
+                          ; random walk
+                          (cons #t (list-ref neighbors (random (length neighbors))))
+                          ; choose the neighbor with the highest score
+                          (cons #f (argmax
+                                    (λ (a) ((score c2 a) F))
+                                    neighbors))))])
               (let ([local-opt (select/Move (get/vars candAssertion assignment))])
                 (if (car local-opt)
                     (cons #t (cdr local-opt))
                     (if (> ((score c2 (cdr local-opt)) F) currScore)
+                        ; improving
                         (cons #t (cdr local-opt))
+                        ; not improving
                         (cons #f (cdr local-opt))))))))
         (define select/Assertion
-          ;;(λ (F assignment selected moves c2)
           (λ (assert-scores)
             ;; assume when the score of an assertion is 1, it's satisfiable
             ;; no diversification TODO: UCB
-            (let ([asserts (get/assertions F)])
-              (cdr (argmax (λ (t) (if (< (car t) 1) (car t) -1))
-                           (for/list ([as assert-scores]
-                                      [a asserts])
-                             (cons as a)))))))
+            (define asserts (get/assertions F))
+            ;; choose the assertion that has the highest score but is not satisfied
+            (cdr (argmax (λ (t) (if (< (car t) 1) (car t) -1))
+                         (for/list ([as assert-scores]
+                                    [a asserts])
+                           (cons as a))))))
         (cond
-          [(>= i maxSteps)
-           (begin
-             ;(displayln assignment)
-             'unknown)]
+          [(>= i maxSteps) 'unknown]
           [else (let* ([asserts (get/assertions F)]
                        [assert-scores (map (score c2 assignment) asserts)])
-                 ;(if (isSat? F assignment c2)
                   (if (andmap (λ (s) (= s 1)) assert-scores)
-                    (begin
-                      ;(displayln i)
-                      (displayln assignment)
-                      (print/models assignment)
-                      'sat)
-                    (let ([newAssign (select/Candidates assert-scores)])
-                      (if (car newAssign)
-                          (sls/do (+ i 1) (cdr newAssign))
-                          (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
-                          ))))])))
+                      ;; if sat, print models and return 'sat
+                      (begin
+                        (displayln assignment)
+                        (print/models assignment)
+                        'sat)
+                      ;; if not, select the best-improving candidate
+                      ;; note that the candidate can be a random walk
+                      (let ([newAssign (select/Candidates assert-scores)])
+                        (if (car newAssign)
+                            ;; best improving or random walk
+                            (sls/do (+ i 1) (cdr newAssign))
+                            ;; no improving candidate, randomize
+                            (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
+                            ))))])))
     (sls/do
      0
      (if start-with-zeros?
