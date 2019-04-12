@@ -66,8 +66,8 @@
                      (simplify
                       (unnest
                        (formula->nnf
-                        (remove-let-bindings
-                         (get-formula script))))))]
+                        ;(remove-let-bindings
+                         (get-formula script)))))]
            [var-info (get-var-info script)])
       (begin
         (random-seed (seed))

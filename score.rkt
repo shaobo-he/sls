@@ -201,9 +201,9 @@
     [else (fp-dist-score c fp1 fp2 #t)]))
 
 (define score2
-  (λ (op1 op2 assignment score-bf)
-    (let ([bv1 (eval op1 assignment)]
-          [bv2 (eval op2 assignment)])
+  (λ (op1 op2 assignment env score-bf)
+    (let ([bv1 (eval op1 assignment env)]
+          [bv2 (eval op2 assignment env)])
       (score-bf bv1 bv2))))
 
 ; bool's score function
@@ -220,28 +220,43 @@
   (λ (es sf cf)
     (foldl (λ (e s) (cf s (sf e))) 0 es)))
 
-(define ((score c assignment) formula)
+(define ((score c assignment [env '()]) formula)
+  (define extend-env (λ (sym val env) (cons (cons sym val) env)))
+  (let ([env (if (empty? env)
+                 (hash->list assignment)
+                 env)])
     (match formula
       [`⊤ 1]
       [`⊥ 0]
-      [`(∨ ,es ...) (score-seq es (score c assignment) max)]
-      [`(∧ ,es ...) (/ (score-seq es (score c assignment) +)
+      [`(let (,bindings ...) ,body)
+       (define new-env
+         (foldl
+          (λ (binding env)
+            (extend-env
+             (car binding)
+             (eval (car (cdr binding)) assignment env)
+             env))
+          env
+          bindings))
+       ((score c assignment new-env) body)]
+      [`(∨ ,es ...) (score-seq es (score c assignment env) max)]
+      [`(∧ ,es ...) (/ (score-seq es (score c assignment env) +)
                        (length es))]
-      [`(¬ (= ,op1 ,op2)) (score2 op1 op2 assignment score/≠)]
-      [`(= ,op1 ,op2) (score2 op1 op2 assignment (score/= c))]
-      [`(¬ (bvult ,op1 ,op2)) (score2 op1 op2 assignment (score/bv≥ c))]
-      [`(bvult ,op1 ,op2) (score2 op1 op2 assignment (score/bv< c))]
-      [`(¬ (fp.lt ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!lt c))]
-      [`(fp.lt ,op1 ,op2) (score2 op1 op2 assignment (score/fplt c))]
-      [`(¬ (fp.leq ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!leq c))]
-      [`(fp.leq ,op1 ,op2) (score2 op1 op2 assignment (score/fpleq c))]
-      [`(¬ (fp.gt ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!gt c))]
+      [`(¬ (= ,op1 ,op2)) (score2 op1 op2 assignment env score/≠)]
+      [`(= ,op1 ,op2) (score2 op1 op2 assignment env (score/= c))]
+      [`(¬ (bvult ,op1 ,op2)) (score2 op1 op2 assignment env (score/bv≥ c))]
+      [`(bvult ,op1 ,op2) (score2 op1 op2 assignment env (score/bv< c))]
+      [`(¬ (fp.lt ,op1 ,op2)) (score2 op1 op2 assignment env (score/fp!lt c))]
+      [`(fp.lt ,op1 ,op2) (score2 op1 op2 assignment env (score/fplt c))]
+      [`(¬ (fp.leq ,op1 ,op2)) (score2 op1 op2 assignment env (score/fp!leq c))]
+      [`(fp.leq ,op1 ,op2) (score2 op1 op2 assignment env (score/fpleq c))]
+      [`(¬ (fp.gt ,op1 ,op2)) (score2 op1 op2 assignment env (score/fp!gt c))]
       [`(fp.gt ,op1 ,op2) (score2 op1 op2 assignment (score/fpgt c))]
-      [`(¬ (fp.geq ,op1 ,op2)) (score2 op1 op2 assignment (score/fp!geq c))]
-      [`(fp.geq ,op1 ,op2) (score2 op1 op2 assignment (score/fpgeq c))]
-      [`(¬ (fp.eq ,op1 ,op2)) (score2 op1 op2 assignment score/fp!eq)]
-      [`(fp.eq ,op1 ,op2) (score2 op1 op2 assignment (score/fpeq c))]
-      [`(¬ ,b) (score-bool! (eval b assignment))]
-      [else (score-bool (eval formula assignment))]))
+      [`(¬ (fp.geq ,op1 ,op2)) (score2 op1 op2 assignment env (score/fp!geq c))]
+      [`(fp.geq ,op1 ,op2) (score2 op1 op2 assignment env (score/fpgeq c))]
+      [`(¬ (fp.eq ,op1 ,op2)) (score2 op1 op2 assignment env score/fp!eq)]
+      [`(fp.eq ,op1 ,op2) (score2 op1 op2 assignment env (score/fpeq c))]
+      [`(¬ ,b) (score-bool! (eval b assignment env))]
+      [else (score-bool (eval formula assignment env))])))
 
 ;(define assignment (hash-set (hash-set (make-immutable-hash) "a" (mkBV 3 1)) "b" (mkBV 3 2)))
