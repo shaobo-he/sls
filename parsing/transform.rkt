@@ -24,7 +24,7 @@
       ; 2 < 1 and 2 ≤ 1 shows different results if we treat 2 ≤ 1 as (∨ (2 < 1) (2 = 1))
       ; basically 2 = 1 has a hamming distance of 0
       ;[`(bvule, exprs ...) (let ([tes (map transform-expr exprs)]) `(∨ (bvult ,@tes) (= ,@tes)))]
-      [`(fp.leq, exprs ...) (transform-expr `(∨ (fp.eq ,@exprs) (fp.lt ,@exprs)))]
+      ;[`(fp.leq, exprs ...) (transform-expr `(∨ (fp.eq ,@exprs) (fp.lt ,@exprs)))]
       ;[`(,op, exprs ...) `(,op ,@(map transform-expr exprs))]
       [`(,exprs ...) (map transform-expr exprs)]
       ['true '⊤]
