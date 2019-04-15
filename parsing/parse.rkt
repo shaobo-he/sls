@@ -96,7 +96,7 @@
     (define get/vars/do
       (λ (F)
         (match F
-          [`(,op ,fs ...)
+          [`(,fs ...)
            (apply append (map (λ (f) (get/vars/do f)) fs))]
           [(struct FloatingPoint _) '()]
           [(struct BitVec _) '()]

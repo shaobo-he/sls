@@ -205,20 +205,55 @@
               asserts
               (remove-eq-asserts asserts eqs '())))))
 
+(define Boolean-expr?
+  (λ (sexpr)
+    (match sexpr
+      [`(,op ,exprs ...)
+       (match op
+         ['¬ #t]
+         ['∧ #t]
+         ['∨ #t]
+         ['= #t]
+         ['bvlt #t]
+         ['bvleq #t]
+         ['bvgt #t]
+         ['bvgeq #t]
+         ['fp.eq #t]
+         ['fp.lt #t]
+         ['fp.leq #t]
+         ['fp.gt #t]
+         ['fp.geq #t]
+         [_ #f])]
+      [_ #f])))
+
 (define remove-let-bindings
   (λ (sexp)
     (define do
       (λ (sexp env)
         (match sexp
           [`(let (,bindings ...) ,body)
-           (let ([new-env
-                  (foldl
-                   (λ (binding env)
-                     (extend-env (car binding) (do (car (cdr binding)) env) env))
-                   env
-                   bindings)])
-             (do body new-env))]
-          [`(, exprs ...) (map (λ (exp) (do exp env)) exprs)]
+           ;; bind-env tuple
+           (define new-tuple
+             (foldl
+              (λ (binding tuple)
+                (let* ([env (cdr tuple)]
+                       [new-bindings (car tuple)]
+                       [binded-expr (do (car (cdr binding)) env)])
+                  (if (Boolean-expr? binded-expr)
+                      (cons
+                       new-bindings
+                       (extend-env (car binding) (do (car (cdr binding)) env) env))
+                      (cons (cons binding new-bindings) env))))
+              (cons '() env)
+              bindings))
+           (define new-bindings (car new-tuple))
+           (define new-env (cdr new-tuple))
+           (if (empty? new-bindings)
+               (do body new-env)
+               `(let ,new-bindings ,(do body new-env)))]
+          ;; can op be a let-binding?
+          ;; assume not
+          [`(,op ,exprs ...) `(,op ,@(map (λ (exp) (do exp env)) exprs))]
           [_ (if (symbol? sexp) (lookup sexp env) sexp)])))
     (define lookup
       (λ (sym env)
