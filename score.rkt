@@ -66,11 +66,13 @@
 (define ((score/fpeq c) fp1 fp2)
   (cond
     [(or (fp/nan? fp1) (fp/nan? fp2)) 0]
+    [(and (fp/zero? fp1) (fp/zero? fp2)) 1]
     [else (score/fp= c fp1 fp2)]))
 
 (define (score/fp!eq fp1 fp2)
   (cond
     [(or (fp/nan? fp1) (fp/nan? fp2)) 1]
+    [(and (fp/zero? fp1) (fp/zero? fp2)) 0]
     [else (score/bv≠
            (FloatingPoint->BitVec fp1)
            (FloatingPoint->BitVec fp2))]))
