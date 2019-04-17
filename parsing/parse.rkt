@@ -88,7 +88,7 @@
   (λ (F)
     (match F
       [`(∧ ,as ...) (filter list? as)]
-      [_ (error "not a valid SMT formula")])))
+      [_ `(,F)])))
 
 
 (define get/vars
