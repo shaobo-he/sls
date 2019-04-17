@@ -15,19 +15,18 @@
       [(struct FloatingPoint _) (get/fp-extended-neighbors v)]
       [_ (error "unimplemented type!")])))
 
-(define print/models
+(define get/models
   (λ (assignment)
-    (for ([pr (hash->list assignment)])
+    (for/list ([pr (hash->list assignment)])
       (define name (car pr))
       (define value (cdr pr))
-      (displayln
-       `(assert
-         (=
-          ,(match value
-             [(struct BitVec _) (BitVec->BVConst value)]
-             [(struct FloatingPoint _) (FloatingPoint->FPConst value)]
-             [_ (error "unimplemented type!")])
-          ,name))))))
+      `(assert
+        (=
+         ,(match value
+            [(struct BitVec _) (BitVec->BVConst value)]
+            [(struct FloatingPoint _) (FloatingPoint->FPConst value)]
+            [_ (error "unimplemented type!")])
+         ,name)))))
 
 #|
 (define isSat?
@@ -159,15 +158,12 @@
                                     [a asserts])
                            (cons as a))))))
         (cond
-          [(>= i maxSteps) 'unknown]
+          [(>= i maxSteps) (cons 'unknown '())]
           [else (let* ([asserts (get/assertions F)]
                        [assert-scores (map (score c2 assignment) asserts)])
                   (if (andmap (λ (s) (= s 1)) assert-scores)
                       ;; if sat, print models and return 'sat
-                      (begin
-                        (displayln assignment)
-                        (print/models assignment)
-                        'sat)
+                        (cons 'sat (get/models assignment))
                       ;; if not, select the best-improving candidate
                       ;; note that the candidate can be a random walk
                       (let ([newAssign (select/Candidates assert-scores)])

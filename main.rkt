@@ -14,6 +14,7 @@
            [wp (make-parameter 0.001)]
            [step (make-parameter 200)]
            [start-with-zeros? (make-parameter #t)]
+           [print-models? (make-parameter #f)]
            [file-to-analyze
             (command-line
              #:program "sls"
@@ -58,6 +59,7 @@
              ["--initialize-with-random" ("Initialize search space with random values"
                                           "otherwise search space is initialized to all 0s")
                                          (start-with-zeros? #f)]
+             ["--print-models" ("Print models") (print-models? #t)]
              #:args (filename) ; expect one command-line argument: <filename>
              ; return the argument as a filename to compile
              filename)]
@@ -71,6 +73,13 @@
            [var-info (get-var-info script)])
       (begin
         (random-seed (seed))
-        (sls var-info formula (c2) (step) (wp) (start-with-zeros?))))))
+        (define result (sls var-info formula (c2) (step) (wp) (start-with-zeros?)))
+        (if (equal? (car result) 'sat)
+            (begin
+              (displayln "sat")
+              (if (print-models?)
+                  (displayln (cdr result))
+                  (display "")))
+            (displayln "unknown"))))))
 
 (main)
