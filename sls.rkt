@@ -28,12 +28,6 @@
             [_ (error "unimplemented type!")])
          ,name)))))
 
-#|
-(define isSat?
-  (λ (F assignment c2)
-    (= ((score c2 assignment) F) 1.0)))
-|#
-
 (define update/Assignment
   (λ (assignment sym val)
     (hash-set assignment sym val)))
@@ -61,26 +55,6 @@
      initialize-var
      (make-immutable-hash)
      (hash-keys var-info))))
-#|
-(define initialize/selected
-  (λ (F)
-    (map (λ (x) 0) F)))
-
-(define get/maxSteps
-  (λ (c4 i)
-    (if (= (modulo i 2) 0)
-        (* c4 (expt 2 (/ i 2)))
-        c4)))
-
-(define sls
-  (λ (F Vars c1 c2 c4)
-    (let ([moves 0]
-          [selected (initialize/selected F)])
-      (letrec ([sls/do (λ (i)
-                         (let ([assignment (initialize/assignment Vars)]
-                               [maxSteps (get/maxStep c4 i)])
-                           )])))
-|#
 
 (define randomize/Assignment
   (λ (var-info)
@@ -179,5 +153,3 @@
      (if start-with-zeros?
          (initialize/Assignment var-info)
          (randomize/Assignment var-info)))))
-
-;(define assignment (hash-set (hash-set (make-immutable-hash) "x" (mkBV 8 100)) "y" (mkBV 8 50)))
