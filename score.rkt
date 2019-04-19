@@ -27,11 +27,9 @@
   (cond
     [(and (fp/nan? fp1) (fp/nan? fp2)) 1]
     [(or (fp/nan? fp1) (fp/nan? fp2)) 0]
+    [(bv= (FloatingPoint->BitVec fp1) (FloatingPoint->BitVec fp2)) 1]
     [else
-     (score/bv=
-      c
-      (FloatingPoint->BitVec fp1)
-      (FloatingPoint->BitVec fp2))]))
+     (fp-dist-score c fp1 fp2 #f)]))
 
 (define ((score/= c) v1 v2)
   (match v1
