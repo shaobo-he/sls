@@ -2,6 +2,9 @@
 
 (require "../../parsing/parse.rkt")
 (require "../../parsing/transform.rkt")
+(require "../../score.rkt")
+(require "../../sls.rkt")
+(require "../../data/fp.rkt")
 
 (define test-script
   "
@@ -48,13 +51,28 @@ v1048575 32)) (_ bv1072693248 32)))))
  (= ?x56 ((_ to_fp 11 53) fresh_to_ieee_bv_!3))))))))))
 ")
 
-(define sexp (string->sexp let-script))
+;(define sexp (string->sexp let-script))
 ;(remove-let-bindings sexp)
 
-(define test-formula (unnest (formula->nnf (get-formula (string->sexp test-script)))))
-(define test-vars (get-vars (string->sexp test-script)))
-(define kenken-formula (unnest (formula->nnf (get-formula (file->sexp "../test3.smt2")))))
-(define kenken-vars (get-vars (file->sexp "../test3.smt2")))
+;(define test-formula (unnest (formula->nnf (get-formula (string->sexp test-script)))))
+;(define test-vars (get-var-info (string->sexp test-script)))
+;(define kenken-formula (unnest (formula->nnf (get-formula (file->sexp "../test3.smt2")))))
+;(define kenken-vars (get-var-info (file->sexp "../test3.smt2")))
 
-(define fp-test-formula (file->sexp "../fp1.z3"))
+(define fp-test-script (file->sexp "../smt-comp/QF_FP/schanda/spark/incorrect_reordering.smt2"))
+;(define fp-test-script (file->sexp "../smt-comp/QF_FP/griggio/fmcad12/test_v5_r5_vr5_c1_s9855.smt2"))
+;(define fp-test-formula (simplify (unnest (formula->nnf (remove-let-bindings (get-formula fp-test-script))))))
+(define fp-test-formula (simplify (unnest (formula->nnf (get-formula fp-test-script)))))
+;(remove-equalities (cdr (remove-let-bindings (unnest (get-formula fp-test-formula)))) #f)
+;(exact->inexact ((score 1/2 (initialize/Assignment (get-var-info fp-test-script))) (remove-fpconst fp-test-formula)))
 
+(define answer
+  (hash-set
+   (hash-set
+    (hash-set (make-immutable-hash) 'x0 (real->FloatingPoint 7.05307148e-38 8 24))
+    'x1
+    (real->FloatingPoint -4.55127728e-40 8 24))
+   'x2
+   (real->FloatingPoint -2.25255895 8 24)))
+
+;(sls (get-var-info fp-test-script) (remove-fpconst fp-test-formula) 1/2 500 0.0001)
