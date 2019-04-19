@@ -161,18 +161,21 @@
           [(>= i maxSteps) (cons 'unknown '())]
           [else (let* ([asserts (get/assertions F)]
                        [assert-scores (map (score c2 assignment) asserts)])
-                  (if (andmap (λ (s) (= s 1)) assert-scores)
-                      ;; if sat, print models and return 'sat
+                  (begin
+                    (log-debug "~a\n" (map exact->inexact assert-scores))
+                    (log-debug "~a\n" assignment)
+                    (if (andmap (λ (s) (= s 1)) assert-scores)
+                        ;; if sat, print models and return 'sat
                         (cons 'sat (get/models assignment))
-                      ;; if not, select the best-improving candidate
-                      ;; note that the candidate can be a random walk
-                      (let ([newAssign (select/Candidates assert-scores)])
-                        (if (car newAssign)
-                            ;; best improving or random walk
-                            (sls/do (+ i 1) (cdr newAssign))
-                            ;; no improving candidate, randomize
-                            (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
-                            ))))])))
+                        ;; if not, select the best-improving candidate
+                        ;; note that the candidate can be a random walk
+                        (let ([newAssign (select/Candidates assert-scores)])
+                          (if (car newAssign)
+                              ;; best improving or random walk
+                              (sls/do (+ i 1) (cdr newAssign))
+                              ;; no improving candidate, randomize
+                              (sls/do (+ i 1) (randomAssign var-info (cdr newAssign) i))
+                              )))))])))
     (sls/do
      0
      (if start-with-zeros?

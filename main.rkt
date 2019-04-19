@@ -7,6 +7,9 @@
          "parsing/transform.rkt"
          racket/cmdline)
 
+(define oliver-logger (make-logger 'oliver-says))
+(define oliver-lr (make-log-receiver oliver-logger 'debug))
+
 (define main
   (λ ()
     (let* ([seed (make-parameter 1)]
@@ -73,6 +76,13 @@
            [var-info (get-var-info script)])
       (begin
         (random-seed (seed))
+        (void 
+         (thread 
+          (λ()(let loop () 
+                (define v (sync oliver-lr))
+                (printf "[~a] ~a\n" (vector-ref v 0) (vector-ref v 1)) 
+                (loop)))))
+        (current-logger oliver-logger)
         (define result (sls var-info formula (c2) (step) (wp) (start-with-zeros?)))
         (if (equal? (car result) 'sat)
             (begin
