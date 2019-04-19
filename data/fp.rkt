@@ -82,10 +82,13 @@
        (let* ([ns (map
                    (λ (bv) (BitVec->FloatingPoint bv exp-width sig-width))
                    (get/bv-extended-neighbors (FloatingPoint->BitVec fp)))]
-              [fns (filter (λ (fp) (not (fp/nan? fp))) ns)])
+              [fns (filter (λ (fp) (and (not (fp/nan? fp))
+                                        (not (fp/infinity? fp)))) ns)])
          (if (= (length ns) (length fns))
              fns
-             (cons (real->FloatingPoint +nan.f exp-width sig-width) fns)))])))
+             (cons (real->FloatingPoint +nan.f exp-width sig-width)
+                   (cons (real->FloatingPoint +inf.f exp-width sig-width)
+                         (cons (real->FloatingPoint -inf.f exp-width sig-width) fns)))))])))
 
 ;; floating-point arithmetic
 (define fp/round-to-subnormal
