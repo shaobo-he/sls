@@ -362,5 +362,5 @@
                         (arithmetic-shift (+ (+ exp exp-bias) sig-width-wo) sig-width-wo)
                         (modulo sig (expt 2 (- sig-width 1))))
                        (/ sig (expt 2 (- (- 1 (+ exp-bias sig-width-wo)) exp))))
-                   (error "unrecognized format for sig+exp!")))
+                   (error "unrecognized format for sig+exp!~a" fp)))
              (bigfloat-signbit (FloatingPoint-value fp))))])))))
