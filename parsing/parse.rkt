@@ -87,7 +87,7 @@
 (define get/assertions
   (λ (F)
     (match F
-      [`(∧ ,as ...) (filter list? as)]
+      [`(∧ ,as ...) as]
       [_ `(,F)])))
 
 
