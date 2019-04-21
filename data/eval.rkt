@@ -53,6 +53,7 @@
           [`(fp.mul ,rm ,op1 ,op2) (eval/fpmul (eval^ op1 env) (eval^ op2 env))]
           [`(fp.div ,rm ,op1 ,op2) (eval/fpdiv (eval^ op1 env) (eval^ op2 env))]
           [`(fp.neg, op) (eval/fpneg (eval^ op env))]
+          [`(fp.sqrt ,rm ,op) (eval/fpsqrt (eval^ op env))]
           [`(fp.isNormal ,op) (mkBoolBV (fp/normal? (eval^ op env)))]
           [`(fp.isSubnormal ,op) (mkBoolBV (fp/subnormal? (eval^ op env)))]
           [`(fp.isZero ,op) (mkBoolBV (fp/zero? (eval^ op env)))]

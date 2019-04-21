@@ -201,6 +201,10 @@
 (define eval/fpmul (eval/fparith/binop bf*))
 (define eval/fpdiv (eval/fparith/binop bf/))
 
+(define eval/fpsqrt
+  (λ (fp)
+    ((eval/fparith/binop (λ (f s) (bfsqrt f))) fp fp)))
+
 (define eval/fpabs
   (λ (fp)
     (define exp-width (FloatingPoint-exp-width fp))
