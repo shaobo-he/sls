@@ -66,10 +66,15 @@
 
 (define random/fp
   (λ (exp-width sig-width)
-    (BitVec->FloatingPoint
-     (random/bv (+ exp-width sig-width))
-     exp-width
-     sig-width)))
+    (if (coin-flip 0.8)
+        (car (shuffle
+              `(, (real->FloatingPoint +inf.f exp-width sig-width)
+                , (real->FloatingPoint -inf.f exp-width sig-width)
+                , (real->FloatingPoint +nan.f exp-width sig-width))))
+        (BitVec->FloatingPoint
+         (random/bv (+ exp-width sig-width))
+         exp-width
+         sig-width))))
 
 (define get/fp-extended-neighbors
   (λ (fp)

@@ -15,6 +15,7 @@
            [step (make-parameter 200)]
            [start-with-zeros? (make-parameter #t)]
            [print-models? (make-parameter #f)]
+           [enable-log (make-parameter #f)]
            [file-to-analyze
             (command-line
              #:program "sls"
@@ -60,6 +61,7 @@
                                           "otherwise search space is initialized to all 0s")
                                          (start-with-zeros? #f)]
              ["--print-models" ("Print models") (print-models? #t)]
+             ["--debug" ("Enable logger") (enable-log #t)]
              #:args (filename) ; expect one command-line argument: <filename>
              ; return the argument as a filename to compile
              filename)]
@@ -73,6 +75,17 @@
            [var-info (get-var-info script)])
       (begin
         (random-seed (seed))
+        (if (enable-log)
+            (let* ([oliver-logger (make-logger 'oliver-says)]
+                   [oliver-lr (make-log-receiver oliver-logger 'debug)])
+              (begin (void 
+                      (thread 
+                       (λ()(let loop () 
+                             (define v (sync oliver-lr))
+                             (printf "[~a] ~a\n" (vector-ref v 0) (vector-ref v 1)) 
+                             (loop)))))
+                     (current-logger oliver-logger)))
+            42)
         (define result (sls var-info formula (c2) (step) (wp) (start-with-zeros?)))
         (if (equal? (car result) 'sat)
             (begin
