@@ -76,6 +76,14 @@
          exp-width
          sig-width))))
 
+(define exp/±
+  (λ (fp)
+    (define two (real->FloatingPoint 2.0
+                 (FloatingPoint-exp-width fp)
+                 (FloatingPoint-sig-width fp)))
+    `(,(eval/fpmul fp two)
+      ,(eval/fpdiv fp two))))
+
 (define get/fp-extended-neighbors
   (λ (fp)
     (define exp-width (FloatingPoint-exp-width fp))
@@ -84,16 +92,18 @@
     (cond
       [(fp/nan? fp) `(,(random/fp exp-width sig-width))]
       [else
-       (let* ([ns (map
-                   (λ (bv) (BitVec->FloatingPoint bv exp-width sig-width))
-                   (get/bv-extended-neighbors (FloatingPoint->BitVec fp)))]
-              [fns (filter (λ (fp) (and (not (fp/nan? fp))
-                                        (not (fp/infinity? fp)))) ns)])
-         (if (= (length ns) (length fns))
-             fns
-             (cons (real->FloatingPoint +nan.f exp-width sig-width)
-                   (cons (real->FloatingPoint +inf.f exp-width sig-width)
-                         (cons (real->FloatingPoint -inf.f exp-width sig-width) fns)))))])))
+       (append
+        (let* ([ns (map
+                    (λ (bv) (BitVec->FloatingPoint bv exp-width sig-width))
+                    (get/bv-extended-neighbors (FloatingPoint->BitVec fp)))]
+               [fns (filter (λ (fp) (and (not (fp/nan? fp))
+                                         (not (fp/infinity? fp)))) ns)])
+          (if (= (length ns) (length fns))
+              fns
+              (cons (real->FloatingPoint +nan.f exp-width sig-width)
+                    (cons (real->FloatingPoint +inf.f exp-width sig-width)
+                          (cons (real->FloatingPoint -inf.f exp-width sig-width) fns)))))
+        (exp/± fp))])))
 
 ;; floating-point arithmetic
 (define fp/round-to-subnormal
